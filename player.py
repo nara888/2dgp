@@ -42,7 +42,7 @@ class Player:
         else:
             self.jump_cnt = 0
             self.state = self.RIGHT_STAND
-
+    """
     def handle_event(self, event):
         if(event.type, event.key) == (SDL_KEYDOWN, SDLK_LEFT):
             if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.RIGHT_RUN):
@@ -56,7 +56,7 @@ class Player:
         elif (event.type, event.key) == (SDL_KEYUP, SDLK_RIGHT):
             if self.state in (self.RIGHT_RUN, ):
                 self.state = self.RIGHT_STAND
-    """
+
 
     def update(self):
         self.frame = (self.frame + 1) % 3
