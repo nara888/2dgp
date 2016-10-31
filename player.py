@@ -22,40 +22,7 @@ class Player:
 
     LEFT_RUN, RIGHT_RUN, LEFT_STAND, RIGHT_STAND, LEFT_JUMP, RIGHT_JUMP = 0, 1, 2, 3, 4, 5
 
-    def handle_left_run(self):
-        self.x -= 5
-        if key_state == KEY_RIGHT:
-            self.state = self.RIGHT_RUN
-        elif key_state == KEY_UP:
-            self.state = self.LEFT_STAND
-        elif key_state == KEY_JUMP:
-            self.state = self.LEFT_JUMP
-
-    def handle_left_stand(self):
-        if key_state == KEY_LEFT:
-            self.state = self.LEFT_RUN
-        elif key_state == KEY_RIGHT:
-            self.state = self.RIGHT_RUN
-        elif key_state == KEY_JUMP:
-            self.state = self.LEFT_JUMP
-
-    def handle_right_run(self):
-        self.x += 5
-        if key_state == KEY_LEFT:
-            self.state = self.LEFT_RUN
-        elif key_state == KEY_UP:
-            self.state = self.RIGHT_STAND
-        elif key_state == KEY_JUMP:
-            self.state = self.RIGHT_JUMP
-
-    def handle_right_stand(self):
-        if key_state == KEY_LEFT:
-            self.state = self.LEFT_RUN
-        elif key_state == KEY_RIGHT:
-            self.state = self.RIGHT_RUN
-        elif key_state == KEY_JUMP:
-            self.state = self.RIGHT_JUMP
-
+    """
     def handle_left_jump(self):
         self.jump_cnt += 1
         if self.jump_cnt <= 15:
@@ -76,13 +43,29 @@ class Player:
             self.jump_cnt = 0
             self.state = self.RIGHT_STAND
 
+    def handle_event(self, event):
+        if(event.type, event.key) == (SDL_KEYDOWN, SDLK_LEFT):
+            if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.RIGHT_RUN):
+                self.state = self.LEFT_RUN
+        elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_RIGHT):
+            if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.LEFT_RUN):
+                self.state = self.RIGHT_RUN
+        elif (event.type, event.key) == (SDL_KEYUP, SDLK_LEFT):
+            if self.state in (self.LEFT_RUN, ):
+                self.state = self.LEFT_STAND
+        elif (event.type, event.key) == (SDL_KEYUP, SDLK_RIGHT):
+            if self.state in (self.RIGHT_RUN, ):
+                self.state = self.RIGHT_STAND
+    """
 
     def update(self):
-        self.cnt += 1
-        if self.cnt % 5 == 0:
-            self.frame = (self.frame + 1) % 3
-        self.handle_state[self.state](self)
+        self.frame = (self.frame + 1) % 3
+        if self.state == self.RIGHT_RUN:
+            self.x = min(800, self.x + 5)
+        elif self.state == self.LEFT_RUN:
+            self.x = max(0, self.x - 5)
 
+    """
     handle_state = {
         LEFT_RUN: handle_left_run,
         RIGHT_RUN: handle_right_run,
@@ -91,7 +74,7 @@ class Player:
         LEFT_JUMP: handle_left_jump,
         RIGHT_JUMP: handle_right_jump
     }
-
+    """
     def __init__(self):
         self.x, self.y = 400, 120
         self.cnt = 0
@@ -122,12 +105,17 @@ class Player:
 def handle_events():
     global running
     global key_state
+    global player
     events = get_events()
     for event in events:
         if event.type == SDL_QUIT:
             running = False
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
             running = False
+        else:
+            player.handle_event(event)
+
+        """
         elif event.type == SDL_KEYUP:
             key_state = KEY_UP
         elif event.type == SDL_KEYDOWN and event.key == SDLK_RIGHT:
@@ -136,10 +124,12 @@ def handle_events():
             key_state = KEY_LEFT
         elif event.type == SDL_KEYDOWN and event.key == SDLK_x:
             key_state = KEY_JUMP
+        """
 
 def main():
 
     open_canvas(800, 700)
+    global player
 
     player = Player()
     stage = Stage()
@@ -158,7 +148,7 @@ def main():
 
         update_canvas()
 
-        delay(0.02)
+        delay(0.04)
     close_canvas()
 
 if __name__ == '__main__':
