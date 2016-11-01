@@ -4,9 +4,7 @@ sys.path.append('../LabsAll/Labs')
 from pico2d import *
 
 running = None
-key_state = None
 
-KEY_UP, KEY_RIGHT, KEY_LEFT, KEY_JUMP = 0, 1, 2, 3
 
 class Stage:
     def __init__(self):
@@ -17,10 +15,25 @@ class Stage:
 
 
 class Player:
-    image = None
-    global state_switch
 
-    LEFT_RUN, RIGHT_RUN, LEFT_STAND, RIGHT_STAND, LEFT_JUMP, RIGHT_JUMP = 0, 1, 2, 3, 4, 5
+    PIXEL_PER_METER = (10.0 / 0.3)              # 10 pixel 30 cm
+    RUN_SPEED_KMPH = 20.0                       # Km / Hour
+    RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
+    RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
+    RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
+
+    SLIDING_SPEED_KMPH = 40.0  # Km / Hour
+    SLIDING_SPEED_MPM = (SLIDING_SPEED_KMPH * 1000.0 / 60.0)
+    SLIDING_SPEED_MPS = (SLIDING_SPEED_MPM / 60.0)
+    SLIDING_SPEED_PPS = (SLIDING_SPEED_MPS * PIXEL_PER_METER)
+
+    TIME_PER_ACTION = 0.5
+    ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
+    FRAMES_PER_ACTION = 8
+
+    image = None
+
+    LEFT_RUN, RIGHT_RUN, LEFT_STAND, RIGHT_STAND, LEFT_JUMP, RIGHT_JUMP, LEFT_SLIDING, RIGHT_SLIDING = 0, 1, 2, 3, 4, 5, 6, 7
 
     """
     def handle_left_jump(self):
@@ -43,12 +56,42 @@ class Player:
             self.jump_cnt = 0
             self.state = self.RIGHT_STAND
     """
+    # 이동
+    def move(self, frame_time):
+        distance = Player.RUN_SPEED_PPS * frame_time
+        if self.state == self.RIGHT_RUN:
+            self.dir = 1
+            self.x += (self.dir * distance)
+
+        elif self.state == self.LEFT_RUN:
+            self.dir = -1
+            self.x += (self.dir * distance)
+
+    # 슬라이딩
+    def sliding(self, frame_time):
+        distance = Player.SLIDING_SPEED_PPS * frame_time
+        if self.state == self.RIGHT_SLIDING:
+            self.dir = 1
+            self.x += (self.dir * distance)
+
+        elif self.state == self.LEFT_SLIDING:
+            self.dir = -1
+            self.x += (self.dir * distance)
+
+    # 낙하
+    def fall(self):
+        pass
+
+    # 점프
+    def jump(self):
+        pass
+
     def handle_event(self, event):
         if(event.type, event.key) == (SDL_KEYDOWN, SDLK_LEFT):
-            if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.RIGHT_RUN):
+            if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.RIGHT_RUN, self.LEFT_SLIDING, self.RIGHT_SLIDING):
                 self.state = self.LEFT_RUN
         elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_RIGHT):
-            if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.LEFT_RUN):
+            if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.LEFT_RUN, self.LEFT_SLIDING, self.RIGHT_SLIDING):
                 self.state = self.RIGHT_RUN
         elif (event.type, event.key) == (SDL_KEYUP, SDLK_LEFT):
             if self.state in (self.LEFT_RUN, ):
@@ -56,32 +99,59 @@ class Player:
         elif (event.type, event.key) == (SDL_KEYUP, SDLK_RIGHT):
             if self.state in (self.RIGHT_RUN, ):
                 self.state = self.RIGHT_STAND
+        elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_x):
+            if self.state in (self.RIGHT_STAND, self.RIGHT_RUN):
+                self.state = self.RIGHT_JUMP
+            elif self.state in (self.LEFT_STAND, self.LEFT_RUN):
+                self.state = self.LEFT_JUMP
+        elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_c):
+            if self.state in (self.RIGHT_STAND, self.RIGHT_RUN):
+                self.state = self.RIGHT_SLIDING
+            elif self.state in (self.LEFT_STAND, self.LEFT_RUN):
+                self.state = self.LEFT_SLIDING
 
 
-    def update(self):
+    def update(self, frame_time):
+
+        self.total_frames += Player.FRAMES_PER_ACTION * Player.ACTION_PER_TIME * frame_time
+        self.frame = int(self.total_frames) % 3
+
+        if self.state in (self.LEFT_RUN, self.RIGHT_RUN):
+            self.move(frame_time)
+        elif self.state in (self.LEFT_SLIDING, self.RIGHT_SLIDING):
+            self.sliding(frame_time)
+
+        """
+        if self.state == self.RIGHT_RUN:
+            self.dir = 1
+            self.x += (self.dir * distance)
+
+        if self.state == self.LEFT_RUN:
+            self.dir = -1
+            self.x += (self.dir * distance)
+        """
+
+        print("Change Time: %f, Total Frames: %d" %(get_time(), self.total_frames))
+
+
+
+        """
         self.frame = (self.frame + 1) % 3
         if self.state == self.RIGHT_RUN:
             self.x = min(800, self.x + 5)
         elif self.state == self.LEFT_RUN:
             self.x = max(0, self.x - 5)
+        elif self.state == self.RIGHT_JUMP:
+            self.y += 5
+        elif self.state == self.LEFT_JUMP:
+            self.y += 5
+        """
 
-    """
-    handle_state = {
-        LEFT_RUN: handle_left_run,
-        RIGHT_RUN: handle_right_run,
-        LEFT_STAND: handle_left_stand,
-        RIGHT_STAND: handle_right_stand,
-        LEFT_JUMP: handle_left_jump,
-        RIGHT_JUMP: handle_right_jump
-    }
-    """
     def __init__(self):
         self.x, self.y = 400, 120
-        self.cnt = 0
-        self.jump_cnt = 0
+        self.dir = 1
+        self.total_frames = 0.0
         self.frame = 0
-        self.run_frames = 0
-        self.stand_frames = 0
         self.char_size = 120
         self.state = self.RIGHT_STAND
         if Player.image == None:
@@ -100,11 +170,13 @@ class Player:
             self.image.clip_draw(160, 200, 40, 40, self.x, self.y, self.char_size, self.char_size)
         elif self.state == self.RIGHT_JUMP:
             self.image.clip_draw(160, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
+        elif self.state == self.LEFT_SLIDING:
+            self.image.clip_draw(200, 200, 40, 40, self.x, self.y, self.char_size, self.char_size)
+        elif self.state == self.RIGHT_SLIDING:
+            self.image.clip_draw(200, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
 
-
-def handle_events():
+def handle_events(frame_time):
     global running
-    global key_state
     global player
     events = get_events()
     for event in events:
@@ -115,21 +187,19 @@ def handle_events():
         else:
             player.handle_event(event)
 
-        """
-        elif event.type == SDL_KEYUP:
-            key_state = KEY_UP
-        elif event.type == SDL_KEYDOWN and event.key == SDLK_RIGHT:
-            key_state = KEY_RIGHT
-        elif event.type == SDL_KEYDOWN and event.key == SDLK_LEFT:
-            key_state = KEY_LEFT
-        elif event.type == SDL_KEYDOWN and event.key == SDLK_x:
-            key_state = KEY_JUMP
-        """
+def get_frame_time():
+
+    global current_time
+
+    frame_time = get_time() - current_time
+    current_time += frame_time
+    return frame_time
 
 def main():
 
     open_canvas(800, 700)
     global player
+    global current_time
 
     player = Player()
     stage = Stage()
@@ -137,10 +207,12 @@ def main():
     global running
     running = True
 
-    while running:
-        handle_events()
+    current_time = get_time()
 
-        player.update()
+    while running:
+        frame_time = get_frame_time()
+        handle_events(frame_time)
+        player.update(frame_time)
 
         clear_canvas()
         stage.draw()
