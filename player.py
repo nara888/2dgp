@@ -121,31 +121,7 @@ class Player:
         elif self.state in (self.LEFT_SLIDING, self.RIGHT_SLIDING):
             self.sliding(frame_time)
 
-        """
-        if self.state == self.RIGHT_RUN:
-            self.dir = 1
-            self.x += (self.dir * distance)
-
-        if self.state == self.LEFT_RUN:
-            self.dir = -1
-            self.x += (self.dir * distance)
-        """
-
         print("Change Time: %f, Total Frames: %d" %(get_time(), self.total_frames))
-
-
-
-        """
-        self.frame = (self.frame + 1) % 3
-        if self.state == self.RIGHT_RUN:
-            self.x = min(800, self.x + 5)
-        elif self.state == self.LEFT_RUN:
-            self.x = max(0, self.x - 5)
-        elif self.state == self.RIGHT_JUMP:
-            self.y += 5
-        elif self.state == self.LEFT_JUMP:
-            self.y += 5
-        """
 
     def __init__(self):
         self.x, self.y = 400, 120
