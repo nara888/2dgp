@@ -27,6 +27,11 @@ class Player:
     SLIDING_SPEED_MPS = (SLIDING_SPEED_MPM / 60.0)
     SLIDING_SPEED_PPS = (SLIDING_SPEED_MPS * PIXEL_PER_METER)
 
+    FALL_SPEED_KMPH = 40.0  # Km / Hour
+    FALL_SPEED_MPM = (FALL_SPEED_KMPH * 1000.0 / 60.0)
+    FALL_SPEED_MPS = (FALL_SPEED_MPM / 60.0)
+    FALL_SPEED_PPS = (FALL_SPEED_MPS * PIXEL_PER_METER)
+
     TIME_PER_ACTION = 0.5
     ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
     FRAMES_PER_ACTION = 8
@@ -63,6 +68,8 @@ class Player:
             self.dir = 1
             self.x += (self.dir * distance)
 
+
+
         elif self.state == self.LEFT_RUN:
             self.dir = -1
             self.x += (self.dir * distance)
@@ -79,8 +86,12 @@ class Player:
             self.x += (self.dir * distance)
 
     # 낙하
-    def fall(self):
-        pass
+    def fall(self, frame_time):
+        if self.y < 130:
+            return
+        else:
+            distance = Player.FALL_SPEED_PPS * frame_time
+            self.y -= distance
 
     # 점프
     def jump(self):
@@ -121,10 +132,12 @@ class Player:
         elif self.state in (self.LEFT_SLIDING, self.RIGHT_SLIDING):
             self.sliding(frame_time)
 
+        self.fall(frame_time)
+
         print("Change Time: %f, Total Frames: %d" %(get_time(), self.total_frames))
 
     def __init__(self):
-        self.x, self.y = 400, 120
+        self.x, self.y = 400, 400
         self.dir = 1
         self.total_frames = 0.0
         self.frame = 0
