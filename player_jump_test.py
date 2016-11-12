@@ -16,8 +16,11 @@ class Stage:
 
 class Player:
 
+    CHAR_SIZE = 120
+    DEAD_EFFECT_SIZE = 80
+
     PIXEL_PER_METER = (10.0 / 0.3)              # 10 pixel 30 cm
-    RUN_SPEED_KMPH = 20.0                       # Km / Hour
+    RUN_SPEED_KMPH = 27.0                       # Km / Hour
     RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
     RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
     RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
@@ -32,23 +35,38 @@ class Player:
     FALL_SPEED_MPS = (FALL_SPEED_MPM / 60.0)
     FALL_SPEED_PPS = (FALL_SPEED_MPS * PIXEL_PER_METER)
 
+    DEAD_EFFECT_SPEED_KMPH = 40.0
+    DEAD_EFFECT_SPEED_MPM = (DEAD_EFFECT_SPEED_KMPH * 1000.0 / 60.0)
+    DEAD_EFFECT_SPEED_MPS = (DEAD_EFFECT_SPEED_MPM / 60.0)
+    DEAD_EFFECT_SPEED_PPS = (DEAD_EFFECT_SPEED_MPS * PIXEL_PER_METER)
+
     TIME_PER_ACTION = 1.0
     ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
     FRAMES_PER_ACTION = 8
 
-    image = None
+    TIME_PER_DEAD_EFFECT = 0.5
+    DEAD_EFFECT_PER_TIME = 1.0 / TIME_PER_DEAD_EFFECT
+    FRAMES_PER_DEAD_EFFECT = 8
+
+    STAND_BB_WIDTH = 25
+    STAND_BB_HEIGHT = 30
+
+    player_image = None
+    dead_effect_image = None
 
     LEFT_RUN, RIGHT_RUN, LEFT_STAND, RIGHT_STAND, \
     LEFT_JUMP, RIGHT_JUMP, LEFT_SLIDING, RIGHT_SLIDING, LEFT_FALL, RIGHT_FALL, \
     LEFT_MOVE_JUMP, RIGHT_MOVE_JUMP, LEFT_MOVE_FALL, RIGHT_MOVE_FALL, \
-        = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+    DEAD \
+        = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
 
     def __init__(self):
         self.x, self.y = 400, 130
         self.dir = 1
         self.total_frames = 0.0
+        self.total_dead_frames = 0.0
         self.frame = 0
-        self.char_size = 120
+        self.dead_frame = 0
         self.state = self.RIGHT_STAND   # 플레이어 상태
         self.shot_state = False     # 샷 상태
         self.action_start_time = 0  # 점프, 슬라이딩 시작 시간
@@ -56,8 +74,12 @@ class Player:
         self.accel = 1  # 가속
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
-        if Player.image == None:
-            Player.image = load_image('player240x280.png')
+        self.dead_effect_xpos = 0
+        self.dead_effect_ypos = 0
+        if Player.player_image == None:
+            Player.player_image = load_image('player240x280.png')
+        if Player.dead_effect_image == None:
+            Player.dead_effect_image = load_image('p_dead_effect_400x80.png')
 
     # 이동
     def move(self, frame_time):
@@ -132,6 +154,17 @@ class Player:
         if get_time() - self.shot_start_time > 0.3:  # 샷을 쏜 시간이 0.x초 지나면 shot_state를 False로 바꾼다
             self.shot_start_time = 0
             self.shot_state = False
+
+    # 사망
+    def dead(self, frame_time):
+        distance = Player.DEAD_EFFECT_SPEED_PPS * frame_time
+        self.dead_effect_ypos = self.dead_effect_ypos + distance
+
+    def get_bb(self):
+        return self.x - Player.STAND_BB_WIDTH, self.y - Player.STAND_BB_HEIGHT, self.x + Player.STAND_BB_WIDTH, self.y + Player.STAND_BB_HEIGHT
+
+    def draw_bb(self):
+        draw_rectangle(*self.get_bb())
 
 
 
@@ -234,6 +267,11 @@ class Player:
                 self.action_start_time = get_time()
                 self.dir = 1
 
+        # q키 입력 : 사망
+        elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_q):
+            self.state = self.DEAD
+            self.dead_effect_ypos = self.y
+
 
 
     def update(self, frame_time):
@@ -249,6 +287,10 @@ class Player:
             self.jump(frame_time)
         elif self.state in (self.LEFT_FALL, self.RIGHT_FALL, self.LEFT_MOVE_FALL, self.RIGHT_MOVE_FALL):
             self.fall(frame_time)
+        elif self.state in (self.DEAD, ):
+            self.total_dead_frames += Player.FRAMES_PER_DEAD_EFFECT * Player.DEAD_EFFECT_PER_TIME * frame_time
+            self.dead_frame = int(self.total_dead_frames) % 5
+            self.dead(frame_time)
 
         if self.shot_state == True:
             self.shot(frame_time)
@@ -259,38 +301,40 @@ class Player:
 
         if self.state == self.LEFT_STAND:
             if self.shot_state == False:
-                self.image.clip_draw(0, 200, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(0, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.image.clip_draw(0, 120, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(0, 120, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.RIGHT_STAND:
             if self.shot_state == False:
-                self.image.clip_draw(0, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(0, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.image.clip_draw(0, 160, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(0, 160, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.LEFT_RUN:
             if self.shot_state == False:
-                self.image.clip_draw(self.frame * 40 + 40, 200, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(self.frame * 40 + 40, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.image.clip_draw(self.frame * 40 + 40, 120, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(self.frame * 40 + 40, 120, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.RIGHT_RUN:
             if self.shot_state == False:
-                self.image.clip_draw(self.frame * 40 + 40, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(self.frame * 40 + 40, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.image.clip_draw(self.frame * 40 + 40, 160, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(self.frame * 40 + 40, 160, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state in (self.LEFT_JUMP, self.LEFT_MOVE_JUMP, self.LEFT_FALL, self.LEFT_MOVE_FALL):
             if self.shot_state == False:
-                self.image.clip_draw(160, 200, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(160, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.image.clip_draw(160, 120, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(160, 120, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state in (self.RIGHT_JUMP, self.RIGHT_MOVE_JUMP, self.RIGHT_FALL, self.RIGHT_MOVE_FALL):
             if self.shot_state == False:
-                self.image.clip_draw(160, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(160, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.image.clip_draw(160, 160, 40, 40, self.x, self.y, self.char_size, self.char_size)
+                self.player_image.clip_draw(160, 160, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.LEFT_SLIDING:
-            self.image.clip_draw(200, 200, 40, 40, self.x, self.y, self.char_size, self.char_size)
+            self.player_image.clip_draw(200, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.RIGHT_SLIDING:
-            self.image.clip_draw(200, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
+            self.player_image.clip_draw(200, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
+        elif self.state == self.DEAD:
+            self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.x, self.dead_effect_ypos, Player.DEAD_EFFECT_SIZE, Player.DEAD_EFFECT_SIZE)
 
 def handle_events(frame_time):
     global running
@@ -334,6 +378,8 @@ def main():
         clear_canvas()
         stage.draw()
         player.draw()
+
+        player.draw_bb()
 
         update_canvas()
 
