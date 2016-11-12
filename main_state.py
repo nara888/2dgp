@@ -8,24 +8,28 @@ import game_framework
 import title_state
 
 from player import Player
+from player_bullet import Bullet
 from background import Background
 
 name = "MainState"
 
 player = None
+player_bullet = None
 background = None
 
 def create_world():
-    global player, background
+    global player, bullet_list,  background
 
-    player = Player()
     background = Background()
+    player = Player()
+    bullet_list = []
 
 def destroy_world():
-    global player, background
+    global player, bullet_list, background
 
     del(player)
     del(background)
+    del(bullet_list)
 
 
 def enter():
@@ -55,6 +59,12 @@ def handle_events(frame_time):
                 game_framework.quit()
             else:
                 player.handle_event(event)
+                if (event.type, event.key) == (SDL_KEYDOWN, SDLK_z):
+                    if player.state in (player.LEFT_SLIDING, player.RIGHT_SLIDING): # 플레이어가 슬라이딩 상태이면 블릿 생성 X
+                        return
+                    else:
+                        if len(bullet_list) < 3:    # 블릿 리스트에 블릿이 2개 이하 이면 블릿 생성
+                            bullet_list.append(Bullet(player))
 
 """
 def collide(a, b):
@@ -72,11 +82,18 @@ def collide(a, b):
 def update(frame_time):
     player.update(frame_time)
 
+    for bullet in bullet_list:
+        bullet.update(frame_time)
+        if bullet.x > 800 or bullet.x < 0:
+            bullet_list.remove(bullet)
+
 
 def draw(frame_time):
     clear_canvas()
     background.draw()
     player.draw()
+    for bullet in bullet_list:
+        bullet.draw()
 
     update_canvas()
 

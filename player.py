@@ -3,16 +3,6 @@ sys.path.append('../LabsAll/Labs')
 
 from pico2d import *
 
-running = None
-
-
-class Stage:
-    def __init__(self):
-        self.image = load_image('stage.png')
-
-    def draw(self):
-        self.image.draw(400, 350, 800, 700)
-
 
 class Player:
 
@@ -22,7 +12,7 @@ class Player:
     RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
     RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 
-    SLIDING_SPEED_KMPH = 40.0  # Km / Hour
+    SLIDING_SPEED_KMPH = 50.0  # Km / Hour
     SLIDING_SPEED_MPM = (SLIDING_SPEED_KMPH * 1000.0 / 60.0)
     SLIDING_SPEED_MPS = (SLIDING_SPEED_MPM / 60.0)
     SLIDING_SPEED_PPS = (SLIDING_SPEED_MPS * PIXEL_PER_METER)
@@ -32,7 +22,7 @@ class Player:
     FALL_SPEED_MPS = (FALL_SPEED_MPM / 60.0)
     FALL_SPEED_PPS = (FALL_SPEED_MPS * PIXEL_PER_METER)
 
-    TIME_PER_ACTION = 0.5
+    TIME_PER_ACTION = 1.0
     ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
     FRAMES_PER_ACTION = 8
 
@@ -49,11 +39,13 @@ class Player:
         self.total_frames = 0.0
         self.frame = 0
         self.char_size = 120
-        self.state = self.RIGHT_STAND
-        self.shot_state = False
-        self.action_start_time = 0
-        self.shot_start_time = 0
-        self.accel = 1
+        self.state = self.RIGHT_STAND   # 플레이어 상태
+        self.shot_state = False     # 샷 상태
+        self.action_start_time = 0  # 점프, 슬라이딩 시작 시간
+        self.shot_start_time = 0    # 샷 시작 시간
+        self.accel = 1  # 가속
+        self.left_key_state = False  # 좌측 키 누름 상태
+        self.right_key_state = False # 우측 키 누름 상태
         if Player.image == None:
             Player.image = load_image('player240x280.png')
 
@@ -67,11 +59,17 @@ class Player:
         distance = Player.SLIDING_SPEED_PPS * frame_time
         self.x += (self.dir * distance)
 
-        if get_time() - self.action_start_time > 0.5:  # 슬라이딩 시간이 0.5초를 지나면 스탠딩으로 상태 변경
+        if get_time() - self.action_start_time > 0.4:  # 슬라이딩 시간이 0.x초를 지나면 상태 변경
             if self.state == self.RIGHT_SLIDING:
-                self.state = self.RIGHT_STAND
+                if self.right_key_state == True:       # 우측 키를 누른 상태이면 RUN 으로, 아니라면 STAND로 상태 변경
+                    self.state = self.RIGHT_RUN
+                else:
+                    self.state = self.RIGHT_STAND
             elif self.state == self.LEFT_SLIDING:
-                self.state = self.LEFT_STAND
+                if self.left_key_state == True:
+                    self.state = self.LEFT_RUN
+                else:
+                    self.state = self.LEFT_STAND
             self.action_start_time = 0
 
     # 점프
@@ -132,6 +130,8 @@ class Player:
 
         # 왼쪽 방향키 입력
         if(event.type, event.key) == (SDL_KEYDOWN, SDLK_LEFT):
+            self.left_key_state = True
+
             if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.RIGHT_RUN, self.LEFT_SLIDING, self.RIGHT_SLIDING):
                 self.state = self.LEFT_RUN
                 self.dir = -1
@@ -144,6 +144,8 @@ class Player:
 
         # 오른쪽 방향키 입력
         elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_RIGHT):
+            self.right_key_state = True
+
             if self.state in (self.RIGHT_STAND, self.LEFT_STAND, self.LEFT_RUN, self.LEFT_SLIDING, self.RIGHT_SLIDING):
                 self.state = self.RIGHT_RUN
                 self.dir = 1
@@ -156,6 +158,8 @@ class Player:
 
         # 왼쪽 방향키 뗌
         elif (event.type, event.key) == (SDL_KEYUP, SDLK_LEFT):
+            self.left_key_state = False
+
             if self.state in (self.LEFT_RUN, ):
                 self.state = self.LEFT_STAND
             elif self.state in (self.LEFT_MOVE_JUMP, ):
@@ -165,6 +169,8 @@ class Player:
 
         # 오른쪽 방향키 뗌
         elif (event.type, event.key) == (SDL_KEYUP, SDLK_RIGHT):
+            self.right_key_state = False
+
             if self.state in (self.RIGHT_RUN, ):
                 self.state = self.RIGHT_STAND
             elif self.state in (self.RIGHT_MOVE_JUMP, ):
@@ -193,6 +199,18 @@ class Player:
                 self.action_start_time = get_time()
             elif self.state in (self.LEFT_RUN, ):
                 self.state = self.LEFT_MOVE_JUMP
+                self.action_start_time = get_time()
+            elif self.state in (self.RIGHT_SLIDING, ):
+                if self.right_key_state == True:
+                    self.state = self.RIGHT_MOVE_JUMP
+                else:
+                    self.state = self.RIGHT_JUMP
+                self.action_start_time = get_time()
+            elif self.state in (self.LEFT_SLIDING, ):
+                if self.left_key_state == True:
+                    self.state = self.LEFT_MOVE_JUMP
+                else:
+                    self.state = self.LEFT_JUMP
                 self.action_start_time = get_time()
 
         # c키 입력 : 슬라이딩
@@ -264,53 +282,3 @@ class Player:
         elif self.state == self.RIGHT_SLIDING:
             self.image.clip_draw(200, 240, 40, 40, self.x, self.y, self.char_size, self.char_size)
 
-def handle_events(frame_time):
-    global running
-    global player
-    events = get_events()
-    for event in events:
-        if event.type == SDL_QUIT:
-            running = False
-        elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
-            running = False
-        else:
-            player.handle_event(event)
-
-def get_frame_time():
-
-    global current_time
-
-    frame_time = get_time() - current_time
-    current_time += frame_time
-    return frame_time
-
-def main():
-
-    open_canvas(800, 700)
-    global player
-    global current_time
-
-    player = Player()
-    stage = Stage()
-
-    global running
-    running = True
-
-    current_time = get_time()
-
-    while running:
-        frame_time = get_frame_time()
-        handle_events(frame_time)
-        player.update(frame_time)
-
-        clear_canvas()
-        stage.draw()
-        player.draw()
-
-        update_canvas()
-
-        #delay(0.04)
-    close_canvas()
-
-if __name__ == '__main__':
-    main()
