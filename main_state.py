@@ -10,26 +10,30 @@ import title_state
 from player import Player
 from player_bullet import Bullet
 from background import Background
+from brick import Jetman_Long_Brick
 
 name = "MainState"
 
 player = None
 player_bullet = None
 background = None
+brick = None
 
 def create_world():
-    global player, bullet_list,  background
+    global player, bullet_list,  background, brick
 
     background = Background()
     player = Player()
+    brick = Jetman_Long_Brick()
     bullet_list = []
 
 def destroy_world():
-    global player, bullet_list, background
+    global player, bullet_list, background, brick
 
     del(player)
     del(background)
     del(bullet_list)
+    del(brick)
 
 
 def enter():
@@ -92,6 +96,7 @@ def draw(frame_time):
     clear_canvas()
     background.draw()
     player.draw()
+    brick.draw()
     for bullet in bullet_list:
         bullet.draw()
 

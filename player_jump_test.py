@@ -1,4 +1,5 @@
 import sys
+import math
 sys.path.append('../LabsAll/Labs')
 
 from pico2d import *
@@ -35,7 +36,7 @@ class Player:
     FALL_SPEED_MPS = (FALL_SPEED_MPM / 60.0)
     FALL_SPEED_PPS = (FALL_SPEED_MPS * PIXEL_PER_METER)
 
-    DEAD_EFFECT_SPEED_KMPH = 40.0
+    DEAD_EFFECT_SPEED_KMPH = 30.0
     DEAD_EFFECT_SPEED_MPM = (DEAD_EFFECT_SPEED_KMPH * 1000.0 / 60.0)
     DEAD_EFFECT_SPEED_MPS = (DEAD_EFFECT_SPEED_MPM / 60.0)
     DEAD_EFFECT_SPEED_PPS = (DEAD_EFFECT_SPEED_MPS * PIXEL_PER_METER)
@@ -74,8 +75,13 @@ class Player:
         self.accel = 1  # 가속
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
-        self.dead_effect_xpos = 0
-        self.dead_effect_ypos = 0
+        self.dead_r = 0
+        self.dead_r2 = 0
+        self.dead_effect_xpos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_ypos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_xpos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_ypos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_degree = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         if Player.player_image == None:
             Player.player_image = load_image('player240x280.png')
         if Player.dead_effect_image == None:
@@ -158,7 +164,20 @@ class Player:
     # 사망
     def dead(self, frame_time):
         distance = Player.DEAD_EFFECT_SPEED_PPS * frame_time
-        self.dead_effect_ypos = self.dead_effect_ypos + distance
+        self.dead_r = self.dead_r + distance
+        distance = Player.DEAD_EFFECT_SPEED_PPS * frame_time * 2
+        self.dead_r2 = self.dead_r2 + distance
+
+        for i in range(0, 8):
+            radian = self.dead_effect_degree[i] * 3.141592 / 180
+
+            self.dead_effect_xpos[i] = self.x + self.dead_r * math.cos(radian)
+            self.dead_effect_ypos[i] = self.y + self.dead_r * math.sin(radian)
+            self.dead_effect_xpos2[i] = self.x + self.dead_r2 * math.cos(radian)
+            self.dead_effect_ypos2[i] = self.y + self.dead_r2 * math.sin(radian)
+
+        #self.dead_effect_ypos = self.dead_effect_ypos + distance
+
 
     def get_bb(self):
         return self.x - Player.STAND_BB_WIDTH, self.y - Player.STAND_BB_HEIGHT, self.x + Player.STAND_BB_WIDTH, self.y + Player.STAND_BB_HEIGHT
@@ -270,7 +289,12 @@ class Player:
         # q키 입력 : 사망
         elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_q):
             self.state = self.DEAD
-            self.dead_effect_ypos = self.y
+            for i in range(0, 8):
+                self.dead_effect_xpos[i] = self.x
+                self.dead_effect_ypos[i] = self.y
+                self.dead_effect_xpos2[i] = self.x
+                self.dead_effect_ypos2[i] = self.y
+                self.dead_effect_degree[i] = 45 * i
 
 
 
@@ -334,7 +358,12 @@ class Player:
         elif self.state == self.RIGHT_SLIDING:
             self.player_image.clip_draw(200, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.DEAD:
-            self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.x, self.dead_effect_ypos, Player.DEAD_EFFECT_SIZE, Player.DEAD_EFFECT_SIZE)
+            for i in range(0, 8):
+                self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.dead_effect_xpos[i],
+                                                 self.dead_effect_ypos[i], Player.DEAD_EFFECT_SIZE, Player.DEAD_EFFECT_SIZE)
+                self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.dead_effect_xpos2[i],
+                                                 self.dead_effect_ypos2[i], Player.DEAD_EFFECT_SIZE,
+                                                 Player.DEAD_EFFECT_SIZE)
 
 def handle_events(frame_time):
     global running
