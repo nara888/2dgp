@@ -31,7 +31,7 @@ class Player:
     SLIDING_SPEED_MPS = (SLIDING_SPEED_MPM / 60.0)
     SLIDING_SPEED_PPS = (SLIDING_SPEED_MPS * PIXEL_PER_METER)
 
-    FALL_SPEED_KMPH = 40.0  # Km / Hour
+    FALL_SPEED_KMPH = 80.0  # Km / Hour
     FALL_SPEED_MPM = (FALL_SPEED_KMPH * 1000.0 / 60.0)
     FALL_SPEED_MPS = (FALL_SPEED_MPM / 60.0)
     FALL_SPEED_PPS = (FALL_SPEED_MPS * PIXEL_PER_METER)
@@ -112,6 +112,10 @@ class Player:
 
     # 점프
     def jump(self, frame_time):
+        Player.FALL_SPEED_KMPH -= 1  # Km / Hour
+        Player.FALL_SPEED_MPM = (Player.FALL_SPEED_KMPH * 1000.0 / 60.0)
+        Player.FALL_SPEED_MPS = (Player.FALL_SPEED_MPM / 60.0)
+        Player.FALL_SPEED_PPS = (Player.FALL_SPEED_MPS * Player.PIXEL_PER_METER)
         distance = Player.FALL_SPEED_PPS * frame_time
         self.y += distance
 
@@ -120,7 +124,8 @@ class Player:
             distance = Player.RUN_SPEED_PPS * frame_time
             self.x += (self.dir * distance)
 
-        if get_time() - self.action_start_time > 0.4:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
+        if get_time() - self.action_start_time > 0.3:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
+            Player.FALL_SPEED_KMPH = 80.0
             self.action_start_time = 0
             self.accel = 1
             if self.state in (self.LEFT_JUMP, ):
@@ -147,6 +152,10 @@ class Player:
                 self.state = self.RIGHT_RUN
 
         else:
+            Player.FALL_SPEED_KMPH += 1  # Km / Hour
+            Player.FALL_SPEED_MPM = (Player.FALL_SPEED_KMPH * 1000.0 / 60.0)
+            Player.FALL_SPEED_MPS = (Player.FALL_SPEED_MPM / 60.0)
+            Player.FALL_SPEED_PPS = (Player.FALL_SPEED_MPS * Player.PIXEL_PER_METER)
             distance = Player.FALL_SPEED_PPS * frame_time
             self.y -= distance
 
