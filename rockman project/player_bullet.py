@@ -14,7 +14,7 @@ class Bullet:
 
     def __init__(self, player):
         if Bullet.image == None:
-            Bullet.image = load_image('bullet.png')
+            Bullet.image = load_image('resource/rockman/bullet.png')
 
         self.dir = player.dir
         self.y = player.y + 10

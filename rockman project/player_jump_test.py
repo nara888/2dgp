@@ -9,7 +9,7 @@ running = None
 
 class Stage:
     def __init__(self):
-        self.image = load_image('stage.png')
+        self.image = load_image('resource/stage/stage.png')
 
     def draw(self):
         self.image.draw(400, 350, 800, 700)
@@ -83,9 +83,9 @@ class Player:
         self.dead_effect_ypos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.dead_effect_degree = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         if Player.player_image == None:
-            Player.player_image = load_image('player240x280.png')
+            Player.player_image = load_image('resource/rockman/rockman240x280.png')
         if Player.dead_effect_image == None:
-            Player.dead_effect_image = load_image('p_dead_effect_400x80.png')
+            Player.dead_effect_image = load_image('resource/effect/small_explosion_effect_400x80.png')
 
     # 이동
     def move(self, frame_time):

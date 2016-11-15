@@ -11,6 +11,7 @@ from player import Player
 from player_bullet import Bullet
 from background import Background
 from brick import Jetman_Long_Brick
+from enemy import *
 
 name = "MainState"
 
@@ -18,22 +19,25 @@ player = None
 player_bullet = None
 background = None
 brick = None
+enemy = None
 
 def create_world():
-    global player, bullet_list,  background, brick
+    global player, bullet_list,  background, brick, enemy
 
     background = Background()
     player = Player()
-    brick = Jetman_Long_Brick()
+    #enemy = Mr_shiniri()
+    #brick = Jetman_Long_Brick()
     bullet_list = []
 
 def destroy_world():
-    global player, bullet_list, background, brick
+    global player, bullet_list, background, brick, enemy
 
     del(player)
+    #del(enemy)
     del(background)
     del(bullet_list)
-    del(brick)
+    #del(brick)
 
 
 def enter():
@@ -85,6 +89,7 @@ def collide(a, b):
 
 def update(frame_time):
     player.update(frame_time)
+    #enemy.update(frame_time)
 
     for bullet in bullet_list:
         bullet.update(frame_time)
@@ -96,7 +101,8 @@ def draw(frame_time):
     clear_canvas()
     background.draw()
     player.draw()
-    brick.draw()
+    #enemy.draw()
+    #brick.draw()
     for bullet in bullet_list:
         bullet.draw()
 

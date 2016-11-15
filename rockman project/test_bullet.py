@@ -20,7 +20,7 @@ class Bullet:
 
     def __init__(self):
         if Bullet.image == None:
-            Bullet.image = load_image('bullet.png')
+            Bullet.image = load_image('resource/player/bullet.png')
         self.x, self.y = 200, 200
         self.bullet_size = 20
         self.dir = 1

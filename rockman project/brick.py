@@ -27,7 +27,7 @@ class Jetman_Long_Brick(Brick):
     def __init__(self):
         self.x, self.y = 400, 300
         if Jetman_Long_Brick.image == None:
-            Jetman_Long_Brick.image = load_image('jetman_brick2.png')
+            Jetman_Long_Brick.image = load_image('resource/brick/jetman_brick2.png')
 
     def update(self, frame_time):
         pass
