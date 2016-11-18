@@ -5,23 +5,16 @@ import main_state
 
 name = "TitleState"
 image = None
-bgm = None
 
 
 def enter():
-    global image, bgm
-    if image == None:
-        image = load_image('resource/state/title.png')
-    if bgm == None:
-        bgm = load_wav('resource/bgm/title.wav')
-        bgm.set_volume(64)
-        bgm.repeat_play()
+    global image
+    image = load_image('resource/state/title.png')
 
 
 def exit():
-    global image, bgm
+    global image
     del(image)
-    del(bgm)
 
 
 def handle_events(frame_time):
