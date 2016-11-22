@@ -31,7 +31,7 @@ class Player:
     SLIDING_SPEED_MPS = (SLIDING_SPEED_MPM / 60.0)
     SLIDING_SPEED_PPS = (SLIDING_SPEED_MPS * PIXEL_PER_METER)
 
-    FALL_SPEED_KMPH = 80.0  # Km / Hour
+    FALL_SPEED_KMPH = 40.0  # Km / Hour
     FALL_SPEED_MPM = (FALL_SPEED_KMPH * 1000.0 / 60.0)
     FALL_SPEED_MPS = (FALL_SPEED_MPM / 60.0)
     FALL_SPEED_PPS = (FALL_SPEED_MPS * PIXEL_PER_METER)
@@ -72,7 +72,7 @@ class Player:
         self.shot_state = False     # 샷 상태
         self.action_start_time = 0  # 점프, 슬라이딩 시작 시간
         self.shot_start_time = 0    # 샷 시작 시간
-        self.accel = 1  # 가속
+        self.accel = 900  # 가속
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
         self.dead_r = 0
@@ -111,12 +111,19 @@ class Player:
             self.action_start_time = 0
 
     # 점프
+
     def jump(self, frame_time):
-        Player.FALL_SPEED_KMPH -= 1  # Km / Hour
-        Player.FALL_SPEED_MPM = (Player.FALL_SPEED_KMPH * 1000.0 / 60.0)
-        Player.FALL_SPEED_MPS = (Player.FALL_SPEED_MPM / 60.0)
-        Player.FALL_SPEED_PPS = (Player.FALL_SPEED_MPS * Player.PIXEL_PER_METER)
-        distance = Player.FALL_SPEED_PPS * frame_time
+        gap_time = 0.1
+        if get_time() - self.action_start_time < 0.1:
+            distance = self.accel * frame_time
+        elif get_time() - self.action_start_time >= gap_time and get_time() - self.action_start_time < gap_time*2:
+            distance = self.accel * frame_time / 2
+        elif get_time() - self.action_start_time >= gap_time*2 and get_time() - self.action_start_time < gap_time*3:
+            distance = self.accel * frame_time / 4
+        elif get_time() - self.action_start_time >= gap_time*3:
+            distance = self.accel * frame_time / 6
+
+
         self.y += distance
 
         # 이동점프 중이면 x값을 변경
@@ -124,27 +131,27 @@ class Player:
             distance = Player.RUN_SPEED_PPS * frame_time
             self.x += (self.dir * distance)
 
-        if get_time() - self.action_start_time > 0.3:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
-            Player.FALL_SPEED_KMPH = 80.0
-            self.action_start_time = 0
-            self.accel = 1
-            if self.state in (self.LEFT_JUMP, ):
+        if get_time() - self.action_start_time > gap_time*3.5:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
+            self.action_start_time = get_time()
+            if self.state in (self.LEFT_JUMP,):
                 self.state = self.LEFT_FALL
-            elif self.state in (self.RIGHT_JUMP, ):
+            elif self.state in (self.RIGHT_JUMP,):
                 self.state = self.RIGHT_FALL
-            elif self.state in (self.LEFT_MOVE_JUMP, ):
+            elif self.state in (self.LEFT_MOVE_JUMP,):
                 self.state = self.LEFT_MOVE_FALL
-            elif self.state in (self.RIGHT_MOVE_JUMP, ):
+            elif self.state in (self.RIGHT_MOVE_JUMP,):
                 self.state = self.RIGHT_MOVE_FALL
 
 
     # 낙하
+
     def fall(self, frame_time):
-        if self.y < 130 :
+        if self.y < 130:
             self.y = 130
-            if self.state in (self.LEFT_FALL, ):
+            self.action_start_time = 0
+            if self.state in (self.LEFT_FALL,):
                 self.state = self.LEFT_STAND
-            elif self.state in (self.RIGHT_FALL, ):
+            elif self.state in (self.RIGHT_FALL,):
                 self.state = self.RIGHT_STAND
             elif self.state in (self.LEFT_MOVE_FALL,):
                 self.state = self.LEFT_RUN
@@ -152,13 +159,17 @@ class Player:
                 self.state = self.RIGHT_RUN
 
         else:
-            Player.FALL_SPEED_KMPH += 1  # Km / Hour
-            Player.FALL_SPEED_MPM = (Player.FALL_SPEED_KMPH * 1000.0 / 60.0)
-            Player.FALL_SPEED_MPS = (Player.FALL_SPEED_MPM / 60.0)
-            Player.FALL_SPEED_PPS = (Player.FALL_SPEED_MPS * Player.PIXEL_PER_METER)
-            distance = Player.FALL_SPEED_PPS * frame_time
-            self.y -= distance
+            gap_time = 0.1
+            if get_time() - self.action_start_time < gap_time*0.5:
+                distance = self.accel * frame_time / 6
+            elif get_time() - self.action_start_time >= gap_time*0.5 and get_time() - self.action_start_time < gap_time * 1.5:
+                distance = self.accel * frame_time / 4
+            elif get_time() - self.action_start_time >= gap_time * 1.5 and get_time() - self.action_start_time < gap_time * 2.5:
+                distance = self.accel * frame_time / 2
+            elif get_time() - self.action_start_time >= gap_time * 2.5:
+                distance = self.accel * frame_time
 
+            self.y -= distance
             # 이동낙하 중이면 x값을 변경
             if self.state in (self.LEFT_MOVE_FALL, self.RIGHT_MOVE_FALL):
                 distance = Player.RUN_SPEED_PPS * frame_time
