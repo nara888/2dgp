@@ -196,9 +196,6 @@ class JetMan(Boss):
         #self.x += (self.dir * distance)
         pass
 
-    # 슬라이딩
-    def sliding(self, frame_time):
-        pass
 
     # 점프
     def jump(self, frame_time):
