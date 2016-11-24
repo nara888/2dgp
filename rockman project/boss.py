@@ -1,7 +1,9 @@
 import sys
+import random
 sys.path.append('../LabsAll/Labs')
 
 from pico2d import *
+
 
 # Enemy 추상 클래스
 # 상속받아 각각의 적들을 만든다
@@ -70,7 +72,9 @@ class JetMan(Boss):
     FLYING_Y_SPEED_MPS = (FLYING_Y_SPEED_MPM / 60.0)
     FLYING_Y_SPEED_PPS = (FLYING_Y_SPEED_MPS * PIXEL_PER_METER)
 
+    JUMP_POWER = 1300
 
+    BOMBING_X_SPEED_PPS = FLYING_X_SPEED_PPS * 1.5
     LANDING_Y_SPEED_PPS = FLYING_Y_SPEED_PPS * 0.7
 
     TIME_PER_ACTION = 2
@@ -78,23 +82,46 @@ class JetMan(Boss):
     FRAMES_PER_ACTION = 8
 
     IMAGE_SIZE = 60
+    ROCK_IMAGE_SIZE = 35
 
     X_SIZE = 180
     Y_SIZE = X_SIZE
+    ROCK_SIZE = 60 / 2
+
+    LEFT_DIR = -1
+    RIGHT_DIR = 1
+
     SPRITE_ANIMATION_NUM = 2
     image = None
+    rock_on_image = None
+
+    GROUND_LINE = 150
+    Y_LANDING_START = 400
+    Y_FLYING_START = 600
+
+    X_LEFT_TAKEOFF_START = 250
+    X_RIGHT_TAKEOFF_START = 550
+
+    X_LEFT_LANDING_STOP = 100
+    X_RIGHT_LANDING_STOP = 700
+
+    X_LEFT_FLYING_STOP = -100
+    X_RIGHT_FLYING_STOP = 900
 
     RIGHT_STAND, LEFT_STAND, RIGHT_RUN, LEFT_RUN, RIGHT_FLYING, LEFT_FLYING, \
     RIGHT_LANDING, LEFT_LANDING, RIGHT_TAKE_OFF, LEFT_TAKE_OFF, \
-    RIGHT_JUMP, LEFT_JUMP, RIGHT_FALL, LEFT_FALL, READY \
-        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13, 14
+    RIGHT_JUMP, LEFT_JUMP, RIGHT_FALL, LEFT_FALL, \
+    RIGHT_BOMBING, LEFT_BOMBING, READY \
+        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
 
     def __init__(self):
         if self.image == None:
             self.image = load_image('resource/boss/jetman/jetman_240x540.png')
+        if self.rock_on_image == None:
+            self.rock_on_image = load_image('resource/boss/jetman/jetman_rockon.png')
 
-        self.x, self.y = 0, 300
-        self.dir = 1
+        self.x, self.y = -150, self.Y_LANDING_START
+        self.dir = self.RIGHT_DIR
         self.frame = 0
         self.total_frames = 0
         self.state = self.RIGHT_LANDING  # 플레이어 상태
@@ -106,15 +133,22 @@ class JetMan(Boss):
         self.trigger_flying = False # 비행
         self.trigger_landing = False    # 착륙
         self.trigger_jump = False   # 점프
+        self.trigger_bombing = False # 폭격
         self.ready_time = 0
         self.ready_start_time = 0
         self.ready_frame = 0
+        self.jump_frame = 0
+
+        self.rock_x = 0
+        self.rock_y = 0
+        self.rock_frame = 0
+        self.rock_state = False
 
     # 스테이지 등장
     def enter_stage(self, frame_time):
         distance = self.FLYING_X_SPEED_PPS * frame_time
         self.x += distance
-        if self.y > 150:
+        if self.y > self.GROUND_LINE:
             distance = self.FLYING_Y_SPEED_PPS * frame_time
             self.y -= distance
         if self.x > 700:
@@ -140,40 +174,44 @@ class JetMan(Boss):
             self.ready_frame = 2
         elif self.ready_time >= (self.gap_time * 12):
             self.state = self.LEFT_STAND
-            self.dir = -1
+            self.dir = self.LEFT_DIR
             self.trigger_ready = False
             self.trigger_take_off = True
 
     # 이륙
     def take_off(self, frame_time):
+
         distance = self.FLYING_X_SPEED_PPS * frame_time
         # 왼쪽 방향일때 왼쪽 이륙
-        if self.dir == -1:
+        if self.dir == self.LEFT_DIR:
             self.x -= distance
             self.state = self.LEFT_RUN
-            if self.x < 250:
+            if self.x < self.X_LEFT_TAKEOFF_START:
                 distance = self.FLYING_Y_SPEED_PPS * frame_time
                 self.y += distance
                 self.state = self.LEFT_TAKE_OFF
-                if self.x < -100:
+                if self.x < self.X_LEFT_FLYING_STOP:
                     self.trigger_take_off = False
                     self.trigger_flying = True
                     self.ready_start_time = get_time()
                     self.state = self.RIGHT_FLYING
-                    self.dir = 1
-                    self.y = 600
-
-    # 착륙
-    def landing(self, frame_time):
-        distance = self.FLYING_X_SPEED_PPS * frame_time
-        self.x -= distance
-        if self.y > 150:
-            distance = self.LANDING_Y_SPEED_PPS * frame_time
-            self.y -= distance
-        if self.x < 100:
-            self.state = self.RIGHT_STAND
-            self.trigger_landing = False
-            self.trigger_jump = True
+                    self.dir = self.RIGHT_DIR
+                    self.y = self.Y_FLYING_START
+        # 오른쪽 방향일때 오른쪽 이륙
+        elif self.dir == self.RIGHT_DIR:
+            self.x += distance
+            self.state = self.RIGHT_RUN
+            if self.x > self.X_RIGHT_TAKEOFF_START:
+                distance = self.FLYING_Y_SPEED_PPS * frame_time
+                self.y += distance
+                self.state = self.RIGHT_TAKE_OFF
+                if self.x > self.X_RIGHT_FLYING_STOP:
+                    self.trigger_take_off = False
+                    self.trigger_flying = True
+                    self.ready_start_time = get_time()
+                    self.state = self.LEFT_FLYING
+                    self.dir = self.LEFT_DIR
+                    self.y = self.Y_FLYING_START
 
     # 비행
     def flying(self, frame_time):
@@ -182,23 +220,187 @@ class JetMan(Boss):
         if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
             pass
         else:
-            distance = self.FLYING_X_SPEED_PPS * frame_time
-            self.x += distance
-            if self.x > 900:
-                self.trigger_flying = False
-                self.trigger_landing = True
-                self.state = self.LEFT_LANDING
-                self.y = 300
+            distance = self.BOMBING_X_SPEED_PPS * frame_time
+            # 왼쪽 방향 이동
+            if self.dir == self.LEFT_DIR:
+                self.x -= distance
+                if self.x < self.X_LEFT_FLYING_STOP:
+                    self.trigger_flying = False
+                    if random.randrange(1, 3) == 1:
+                        self.state = self.RIGHT_BOMBING
+                        self.trigger_bombing = True
+                    else:
+                        self.state = self.RIGHT_LANDING
+                        self.trigger_landing = True
+                    self.ready_start_time = get_time()
+                    self.y = self.Y_LANDING_START
+                    self.dir = self.RIGHT_DIR    # 우측방향으로 수정
+            # 오른쪽 방향 이동
+            elif self.dir == self.RIGHT_DIR:
+                self.x += distance
+                if self.x > self.X_RIGHT_FLYING_STOP:
+                    self.trigger_flying = False
+                    if random.randrange(0, 2) == 0:
+                        self.state = self.LEFT_BOMBING
+                        self.trigger_bombing = True
+                    else:
+                        self.state = self.LEFT_LANDING
+                        self.trigger_landing = True
+                    self.ready_start_time = get_time()
+                    self.y = self.Y_LANDING_START
+                    self.dir = self.LEFT_DIR  # 좌측방향으로 수정
 
-    # 이동
-    def move(self, frame_time):
-        #distance = self.RUN_SPEED_PPS * frame_time
-        #self.x += (self.dir * distance)
-        pass
+    #########################
+    # 미사일 공격
+    def missile_attack(self, frame_time):
+        self.ready_time = get_time() - self.ready_start_time
+        self.gap_time = 1
+        if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
+            pass
+        elif self.ready_time >= (self.gap_time * 1) and self.ready_time < (self.gap_time * 2):
+            self.rock_state = True
+
+
+    # 폭격
+    def bombing(self, frame_time):
+        self.ready_time = get_time() - self.ready_start_time
+        self.gap_time = 1
+        if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
+            pass
+        else:
+            distance = self.BOMBING_X_SPEED_PPS * frame_time
+            self.y = self.Y_FLYING_START
+            if self.dir == self.LEFT_DIR:
+                self.x -= distance
+                if self.x < self.X_LEFT_FLYING_STOP:
+                    self.trigger_bombing = False
+                    self.trigger_landing = True
+                    self.state = self.RIGHT_LANDING
+                    self.x = self.X_LEFT_FLYING_STOP
+                    self.y = self.Y_LANDING_START
+                    self.dir = self.RIGHT_DIR
+                    self.ready_start_time = get_time()
+            elif self.dir == self.RIGHT_DIR:
+                self.x += distance
+                if self.x > self.X_RIGHT_FLYING_STOP:
+                    self.trigger_bombing = False
+                    self.trigger_landing = True
+                    self.state = self.LEFT_LANDING
+                    self.x = self.X_RIGHT_FLYING_STOP
+                    self.y = self.Y_LANDING_START
+                    self.dir = self.LEFT_DIR
+                    self.ready_start_time = get_time()
+
+    # 착륙
+    def landing(self, frame_time):
+        self.ready_time = get_time() - self.ready_start_time
+        self.gap_time = 1
+        if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
+            pass
+        else:
+            distance = self.FLYING_X_SPEED_PPS * frame_time
+
+            if self.dir == self.LEFT_DIR:
+                self.x -= distance
+                if self.y > self.GROUND_LINE:
+                    distance = self.FLYING_Y_SPEED_PPS * frame_time
+                    self.y -= distance
+                if self.x < self.X_LEFT_LANDING_STOP:
+                    self.state = self.RIGHT_STAND
+                    self.trigger_landing = False
+                    self.trigger_jump = True
+                    self.dir = self.RIGHT_DIR
+                    self.ready_start_time = get_time()
+
+            elif self.dir == self.RIGHT_DIR:
+                self.x += distance
+                if self.y > self.GROUND_LINE:
+                    distance = self.FLYING_Y_SPEED_PPS * frame_time
+                    self.y -= distance
+                if self.x > self.X_RIGHT_LANDING_STOP:
+                    self.state = self.LEFT_STAND
+                    self.trigger_landing = False
+                    self.trigger_jump = True
+                    self.dir = self.LEFT_DIR
+                    self.ready_start_time = get_time()
 
 
     # 점프
     def jump(self, frame_time):
+        gap_time = 0.1
+        start_gap_time = 0.5
+        self.ready_time = get_time() - self.ready_start_time
+        distance = 0
+
+        if self.dir == self.LEFT_DIR:
+            # 점프
+            if self.ready_time >= start_gap_time and self.ready_time < gap_time + start_gap_time:
+                distance = self.JUMP_POWER * frame_time
+                self.state = self.LEFT_JUMP
+                self.jump_frame = 0
+            elif self.ready_time >= gap_time + start_gap_time and self.ready_time < gap_time*2 + start_gap_time:
+                distance = self.JUMP_POWER * frame_time / 2
+                self.jump_frame = 1
+            elif self.ready_time >= gap_time*2 + start_gap_time and self.ready_time < gap_time*3 + start_gap_time:
+                distance = self.JUMP_POWER * frame_time / 4
+                self.jump_frame = 2
+            elif self.ready_time >= gap_time*3 + start_gap_time and self.ready_time < gap_time*4 + start_gap_time:
+                distance = self.JUMP_POWER * frame_time / 6
+                self.jump_frame = 3
+            # 추락
+            elif self.ready_time >= gap_time * 4 + start_gap_time and self.ready_time < gap_time * 5 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time / 6)
+            elif self.ready_time >= gap_time * 5 + start_gap_time and self.ready_time < gap_time * 6 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time / 4)
+            elif self.ready_time >= gap_time * 6 + start_gap_time and self.ready_time < gap_time * 7 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time / 2)
+            elif self.ready_time >= gap_time * 7 + start_gap_time and self.ready_time < gap_time * 8 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time)
+            elif self.ready_time >= gap_time * 8 + start_gap_time and self.ready_time < gap_time * 8 + start_gap_time * 2:
+                self.state = self.LEFT_STAND
+            elif self.ready_time >= gap_time * 8 + start_gap_time * 2:
+                self.trigger_jump = False
+                self.trigger_take_off = True
+                self.state = self.LEFT_RUN
+                self.y = self.GROUND_LINE
+
+        elif self.dir == self.RIGHT_DIR:
+            # 점프
+            if self.ready_time >= start_gap_time and self.ready_time < gap_time + start_gap_time:
+                distance = self.JUMP_POWER * frame_time
+                self.state = self.RIGHT_JUMP
+                self.jump_frame = 0
+            elif self.ready_time >= gap_time + start_gap_time and self.ready_time < gap_time * 2 + start_gap_time:
+                distance = self.JUMP_POWER * frame_time / 2
+                self.jump_frame = 1
+            elif self.ready_time >= gap_time * 2 + start_gap_time and self.ready_time < gap_time * 3 + start_gap_time:
+                distance = self.JUMP_POWER * frame_time / 4
+                self.jump_frame = 2
+            elif self.ready_time >= gap_time * 3 + start_gap_time and self.ready_time < gap_time * 4 + start_gap_time:
+                distance = self.JUMP_POWER * frame_time / 6
+                self.jump_frame = 3
+            # 추락
+            elif self.ready_time >= gap_time * 4 + start_gap_time and self.ready_time < gap_time * 5 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time / 6)
+            elif self.ready_time >= gap_time * 5 + start_gap_time and self.ready_time < gap_time * 6 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time / 4)
+            elif self.ready_time >= gap_time * 6 + start_gap_time and self.ready_time < gap_time * 7 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time / 2)
+            elif self.ready_time >= gap_time * 7 + start_gap_time and self.ready_time < gap_time * 8 + start_gap_time:
+                distance = -(self.JUMP_POWER * frame_time)
+            elif self.ready_time >= gap_time * 8 + start_gap_time and self.ready_time < gap_time * 8 + start_gap_time * 2:
+                self.state = self.RIGHT_STAND
+            elif self.ready_time >= gap_time * 8 + start_gap_time * 2:
+                self.trigger_jump = False
+                self.trigger_take_off = True
+                self.state = self.RIGHT_RUN
+                self.y = self.GROUND_LINE
+        self.y += distance
+
+    # 이동
+    def move(self, frame_time):
+        # distance = self.RUN_SPEED_PPS * frame_time
+        # self.x += (self.dir * distance)
         pass
 
     # 낙하
@@ -236,6 +438,10 @@ class JetMan(Boss):
             self.flying(frame_time)
         elif self.trigger_landing == True:
             self.landing(frame_time)
+        elif self.trigger_bombing == True:
+            self.bombing(frame_time)
+        elif self.trigger_jump == True:
+            self.jump(frame_time)
         #self.move(frame_time)
 
     def draw(self):
@@ -251,11 +457,17 @@ class JetMan(Boss):
         elif self.state in (self.RIGHT_LANDING, self.RIGHT_RUN):
             self.image.clip_draw(self.IMAGE_SIZE * self.frame, self.IMAGE_SIZE * 5, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
-        elif self.state in (self.LEFT_TAKE_OFF, self.LEFT_FLYING):
+        elif self.state in (self.LEFT_TAKE_OFF, self.LEFT_FLYING, self.LEFT_BOMBING):
             self.image.clip_draw(self.IMAGE_SIZE * self.frame, self.IMAGE_SIZE * 2, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
-        elif self.state in (self.RIGHT_TAKE_OFF, self.RIGHT_FLYING):
+        elif self.state in (self.RIGHT_TAKE_OFF, self.RIGHT_FLYING, self.RIGHT_BOMBING):
             self.image.clip_draw(self.IMAGE_SIZE * self.frame, self.IMAGE_SIZE * 3, self.IMAGE_SIZE, self.IMAGE_SIZE,
+                                 self.x, self.y, self.X_SIZE, self.Y_SIZE)
+        elif self.state in (self.LEFT_JUMP, ):
+            self.image.clip_draw(self.IMAGE_SIZE * self.jump_frame, self.IMAGE_SIZE * 0, self.IMAGE_SIZE, self.IMAGE_SIZE,
+                                 self.x, self.y, self.X_SIZE, self.Y_SIZE)
+        elif self.state in (self.RIGHT_JUMP, ):
+            self.image.clip_draw(self.IMAGE_SIZE * self.jump_frame, self.IMAGE_SIZE * 1, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
         elif self.state == self.READY:
             self.image.clip_draw(self.IMAGE_SIZE * self.ready_frame, self.IMAGE_SIZE * 8, self.IMAGE_SIZE, self.IMAGE_SIZE,

@@ -49,6 +49,8 @@ class Player:
     LANDING_EFFECT_PER_TIME = 1.0 / TIME_PER_LANDING_EFFECT
     FRAMES_PER_LANDING_EFFECT = 8
 
+    JUMP_POWER = 900
+
     STAND_BB_WIDTH = 25
     STAND_BB_HEIGHT = 30
 
@@ -75,7 +77,6 @@ class Player:
         self.shot_state = False     # 샷 상태
         self.action_start_time = 0  # 점프, 슬라이딩 시작 시간
         self.shot_start_time = 0    # 샷 시작 시간
-        self.accel = 1  # 가속
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
 
@@ -134,7 +135,17 @@ class Player:
 
     # 점프
     def jump(self, frame_time):
-        distance = Player.FALL_SPEED_PPS * frame_time
+        gap_time = 0.1
+        if get_time() - self.action_start_time < 0.1:
+            distance = self.JUMP_POWER * frame_time
+        elif get_time() - self.action_start_time >= gap_time and get_time() - self.action_start_time < gap_time*2:
+            distance = self.JUMP_POWER * frame_time / 2
+        elif get_time() - self.action_start_time >= gap_time*2 and get_time() - self.action_start_time < gap_time*3:
+            distance = self.JUMP_POWER * frame_time / 4
+        elif get_time() - self.action_start_time >= gap_time*3:
+            distance = self.JUMP_POWER * frame_time / 6
+
+
         self.y += distance
 
         # 이동점프 중이면 x값을 변경
@@ -142,26 +153,26 @@ class Player:
             distance = Player.RUN_SPEED_PPS * frame_time
             self.x += (self.dir * distance)
 
-        if get_time() - self.action_start_time > 0.4:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
-            self.action_start_time = 0
-            self.accel = 1
-            if self.state in (self.LEFT_JUMP, ):
+        if get_time() - self.action_start_time > gap_time*3.5:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
+            self.action_start_time = get_time()
+            if self.state in (self.LEFT_JUMP,):
                 self.state = self.LEFT_FALL
-            elif self.state in (self.RIGHT_JUMP, ):
+            elif self.state in (self.RIGHT_JUMP,):
                 self.state = self.RIGHT_FALL
-            elif self.state in (self.LEFT_MOVE_JUMP, ):
+            elif self.state in (self.LEFT_MOVE_JUMP,):
                 self.state = self.LEFT_MOVE_FALL
-            elif self.state in (self.RIGHT_MOVE_JUMP, ):
+            elif self.state in (self.RIGHT_MOVE_JUMP,):
                 self.state = self.RIGHT_MOVE_FALL
 
 
     # 낙하
     def fall(self, frame_time):
-        if self.y < 130 :
+        if self.y < 130:
             self.y = 130
-            if self.state in (self.LEFT_FALL, ):
+            self.action_start_time = 0
+            if self.state in (self.LEFT_FALL,):
                 self.state = self.LEFT_STAND
-            elif self.state in (self.RIGHT_FALL, ):
+            elif self.state in (self.RIGHT_FALL,):
                 self.state = self.RIGHT_STAND
             elif self.state in (self.LEFT_MOVE_FALL,):
                 self.state = self.LEFT_RUN
@@ -169,9 +180,17 @@ class Player:
                 self.state = self.RIGHT_RUN
 
         else:
-            distance = Player.FALL_SPEED_PPS * frame_time
-            self.y -= distance
+            gap_time = 0.1
+            if get_time() - self.action_start_time < gap_time*0.5:
+                distance = self.JUMP_POWER * frame_time / 6
+            elif get_time() - self.action_start_time >= gap_time*0.5 and get_time() - self.action_start_time < gap_time * 1.5:
+                distance = self.JUMP_POWER * frame_time / 4
+            elif get_time() - self.action_start_time >= gap_time * 1.5 and get_time() - self.action_start_time < gap_time * 2.5:
+                distance = self.JUMP_POWER * frame_time / 2
+            elif get_time() - self.action_start_time >= gap_time * 2.5:
+                distance = self.JUMP_POWER * frame_time
 
+            self.y -= distance
             # 이동낙하 중이면 x값을 변경
             if self.state in (self.LEFT_MOVE_FALL, self.RIGHT_MOVE_FALL):
                 distance = Player.RUN_SPEED_PPS * frame_time
