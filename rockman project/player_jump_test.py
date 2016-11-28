@@ -72,7 +72,7 @@ class Player:
         self.shot_state = False     # 샷 상태
         self.action_start_time = 0  # 점프, 슬라이딩 시작 시간
         self.shot_start_time = 0    # 샷 시작 시간
-        self.accel = 900  # 가속
+        self.accel = 850  # 점프 가속
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
         self.dead_r = 0
@@ -293,6 +293,21 @@ class Player:
                     self.state = self.LEFT_MOVE_JUMP
                 else:
                     self.state = self.LEFT_JUMP
+                self.action_start_time = get_time()
+
+        # x키 뗌
+        elif (event.type, event.key) == (SDL_KEYUP, SDLK_x):
+            if self.state in (self.RIGHT_JUMP, ):
+                self.state = self.RIGHT_FALL
+                self.action_start_time = get_time()
+            elif self.state in (self.LEFT_JUMP, ):
+                self.state = self.LEFT_FALL
+                self.action_start_time = get_time()
+            elif self.state in (self.RIGHT_MOVE_JUMP, ):
+                self.state = self.RIGHT_MOVE_FALL
+                self.action_start_time = get_time()
+            elif self.state in (self.LEFT_MOVE_JUMP, ):
+                self.state = self.LEFT_MOVE_FALL
                 self.action_start_time = get_time()
 
         # c키 입력 : 슬라이딩

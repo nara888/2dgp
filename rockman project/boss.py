@@ -3,6 +3,8 @@ import random
 sys.path.append('../LabsAll/Labs')
 
 from pico2d import *
+from boss_bullet import *
+from player import *
 
 
 # Enemy 추상 클래스
@@ -58,7 +60,6 @@ class Boss:
         pass
 
 
-
 class JetMan(Boss):
 
     PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel 30 cm
@@ -81,17 +82,23 @@ class JetMan(Boss):
     ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
     FRAMES_PER_ACTION = 8
 
+    TIME_PER_ROCK = 0.8
+    ROCK_PER_TIME = 1.0 / TIME_PER_ROCK
+
     IMAGE_SIZE = 60
     ROCK_IMAGE_SIZE = 35
 
     X_SIZE = 180
     Y_SIZE = X_SIZE
-    ROCK_SIZE = 60 / 2
+
+    ROCK_SIZE = 120
 
     LEFT_DIR = -1
     RIGHT_DIR = 1
 
     SPRITE_ANIMATION_NUM = 2
+    ROCK_ANI_NUM = 3
+
     image = None
     rock_on_image = None
 
@@ -111,8 +118,8 @@ class JetMan(Boss):
     RIGHT_STAND, LEFT_STAND, RIGHT_RUN, LEFT_RUN, RIGHT_FLYING, LEFT_FLYING, \
     RIGHT_LANDING, LEFT_LANDING, RIGHT_TAKE_OFF, LEFT_TAKE_OFF, \
     RIGHT_JUMP, LEFT_JUMP, RIGHT_FALL, LEFT_FALL, \
-    RIGHT_BOMBING, LEFT_BOMBING, READY \
-        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+    RIGHT_BOMBING, LEFT_BOMBING, LEFT_MISSILE, RIGHT_MISSILE, READY \
+        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
 
     def __init__(self):
         if self.image == None:
@@ -134,6 +141,7 @@ class JetMan(Boss):
         self.trigger_landing = False    # 착륙
         self.trigger_jump = False   # 점프
         self.trigger_bombing = False # 폭격
+        self.trigger_missile = False # 미사일 공격
         self.ready_time = 0
         self.ready_start_time = 0
         self.ready_frame = 0
@@ -142,7 +150,10 @@ class JetMan(Boss):
         self.rock_x = 0
         self.rock_y = 0
         self.rock_frame = 0
+        self.rock_total_frames = 0
         self.rock_state = False
+
+        self.jetman_missile = None
 
     # 스테이지 등장
     def enter_stage(self, frame_time):
@@ -226,39 +237,64 @@ class JetMan(Boss):
                 self.x -= distance
                 if self.x < self.X_LEFT_FLYING_STOP:
                     self.trigger_flying = False
-                    if random.randrange(1, 3) == 1:
+                    # 랜덤으로 폭격, 미사일공격 패턴으로 넘어간다
+                    if random.randint(1, 2) == 1:
                         self.state = self.RIGHT_BOMBING
                         self.trigger_bombing = True
                     else:
-                        self.state = self.RIGHT_LANDING
-                        self.trigger_landing = True
+                        self.state = self.RIGHT_MISSILE
+                        self.trigger_missile = True
                     self.ready_start_time = get_time()
-                    self.y = self.Y_LANDING_START
+                    self.y = random.randint(300,800)
                     self.dir = self.RIGHT_DIR    # 우측방향으로 수정
             # 오른쪽 방향 이동
             elif self.dir == self.RIGHT_DIR:
                 self.x += distance
                 if self.x > self.X_RIGHT_FLYING_STOP:
                     self.trigger_flying = False
-                    if random.randrange(0, 2) == 0:
+                    if random.randint(1, 2) == 1:
                         self.state = self.LEFT_BOMBING
                         self.trigger_bombing = True
                     else:
-                        self.state = self.LEFT_LANDING
-                        self.trigger_landing = True
+                        self.state = self.LEFT_MISSILE
+                        self.trigger_missile = True
                     self.ready_start_time = get_time()
-                    self.y = self.Y_LANDING_START
+                    self.y = random.randint(300, 800)
                     self.dir = self.LEFT_DIR  # 좌측방향으로 수정
 
     #########################
     # 미사일 공격
-    def missile_attack(self, frame_time):
+    def missile_attack(self, frame_time, player):
         self.ready_time = get_time() - self.ready_start_time
         self.gap_time = 1
+
         if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
-            pass
-        elif self.ready_time >= (self.gap_time * 1) and self.ready_time < (self.gap_time * 2):
+            self.jetman_missile = None
+            #pass
+
+        elif self.ready_time >= (self.gap_time * 1) and self.ready_time < (self.gap_time * 3):
+            self.rock_total_frames += self.FRAMES_PER_ACTION * self.ROCK_PER_TIME * frame_time
+            self.rock_frame = int(self.rock_total_frames) % self.ROCK_ANI_NUM
             self.rock_state = True
+            self.rock_x, self.rock_y = player.x, player.y + 10
+        elif self.ready_time >= (self.gap_time * 3) and self.ready_time < (self.gap_time * 4):
+            self.rock_total_frames += self.FRAMES_PER_ACTION * self.ROCK_PER_TIME * frame_time * 2
+            self.rock_frame = int(self.rock_total_frames) % self.ROCK_ANI_NUM
+            self.rock_state = True
+            self.rock_x, self.rock_y = player.x, player.y + 10
+        elif self.ready_time >= (self.gap_time * 4) and self.ready_time < (self.gap_time * 5):
+            self.rock_state = False
+            if self.jetman_missile == None:
+                self.jetman_missile = JetMan_Missile(self, player)
+        elif self.ready_time >= (self.gap_time * 5):
+            self.trigger_missile = False
+            self.trigger_landing = True
+            self.y = self.Y_LANDING_START
+            self.ready_start_time = get_time()
+            if self.state == self.LEFT_MISSILE:
+                self.state = self.LEFT_LANDING
+            elif self.state == self.RIGHT_MISSILE:
+                self.state = self.RIGHT_LANDING
 
 
     # 폭격
@@ -325,8 +361,8 @@ class JetMan(Boss):
                     self.ready_start_time = get_time()
 
 
-    # 점프
-    def jump(self, frame_time):
+    # 점프 공격
+    def jump(self, frame_time, player):
         gap_time = 0.1
         start_gap_time = 0.5
         self.ready_time = get_time() - self.ready_start_time
@@ -338,6 +374,7 @@ class JetMan(Boss):
                 distance = self.JUMP_POWER * frame_time
                 self.state = self.LEFT_JUMP
                 self.jump_frame = 0
+                self.jetman_missile = None
             elif self.ready_time >= gap_time + start_gap_time and self.ready_time < gap_time*2 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 2
                 self.jump_frame = 1
@@ -347,6 +384,8 @@ class JetMan(Boss):
             elif self.ready_time >= gap_time*3 + start_gap_time and self.ready_time < gap_time*4 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 6
                 self.jump_frame = 3
+                if self.jetman_missile == None:
+                    self.jetman_missile = JetMan_Missile(self, player)
             # 추락
             elif self.ready_time >= gap_time * 4 + start_gap_time and self.ready_time < gap_time * 5 + start_gap_time:
                 distance = -(self.JUMP_POWER * frame_time / 6)
@@ -370,6 +409,7 @@ class JetMan(Boss):
                 distance = self.JUMP_POWER * frame_time
                 self.state = self.RIGHT_JUMP
                 self.jump_frame = 0
+                self.jetman_missile = None
             elif self.ready_time >= gap_time + start_gap_time and self.ready_time < gap_time * 2 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 2
                 self.jump_frame = 1
@@ -379,6 +419,8 @@ class JetMan(Boss):
             elif self.ready_time >= gap_time * 3 + start_gap_time and self.ready_time < gap_time * 4 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 6
                 self.jump_frame = 3
+                if self.jetman_missile == None:
+                    self.jetman_missile = JetMan_Missile(self, player)
             # 추락
             elif self.ready_time >= gap_time * 4 + start_gap_time and self.ready_time < gap_time * 5 + start_gap_time:
                 distance = -(self.JUMP_POWER * frame_time / 6)
@@ -397,20 +439,6 @@ class JetMan(Boss):
                 self.y = self.GROUND_LINE
         self.y += distance
 
-    # 이동
-    def move(self, frame_time):
-        # distance = self.RUN_SPEED_PPS * frame_time
-        # self.x += (self.dir * distance)
-        pass
-
-    # 낙하
-    def fall(self, frame_time):
-        pass
-
-    # 발사
-    def shot(self, frame_time):
-        pass
-
     # 사망
     def dead(self, frame_time):
         pass
@@ -421,10 +449,7 @@ class JetMan(Boss):
     def draw_bb(self):
         pass
 
-    def handle_event(self, event):
-        pass
-
-    def update(self, frame_time):
+    def update(self, frame_time, player):
         self.total_frames += self.FRAMES_PER_ACTION * self.ACTION_PER_TIME * frame_time
         self.frame = int(self.total_frames) % self.SPRITE_ANIMATION_NUM
 
@@ -441,7 +466,13 @@ class JetMan(Boss):
         elif self.trigger_bombing == True:
             self.bombing(frame_time)
         elif self.trigger_jump == True:
-            self.jump(frame_time)
+            self.jump(frame_time, player)
+        elif self.trigger_missile == True:
+            self.missile_attack(frame_time, player)
+
+        if (self.jetman_missile == None) == False:
+            self.jetman_missile.update(frame_time)
+
         #self.move(frame_time)
 
     def draw(self):
@@ -469,6 +500,13 @@ class JetMan(Boss):
         elif self.state in (self.RIGHT_JUMP, ):
             self.image.clip_draw(self.IMAGE_SIZE * self.jump_frame, self.IMAGE_SIZE * 1, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
+        # 미사일 공격
+        elif self.state in (self.LEFT_MISSILE, self.RIGHT_MISSILE) and self.rock_state == True:
+            self.rock_on_image.clip_draw(self.ROCK_IMAGE_SIZE * self.rock_frame, 0, self.ROCK_IMAGE_SIZE, self.ROCK_IMAGE_SIZE,
+                                 self.rock_x, self.rock_y, self.ROCK_SIZE, self.ROCK_SIZE)
+
         elif self.state == self.READY:
             self.image.clip_draw(self.IMAGE_SIZE * self.ready_frame, self.IMAGE_SIZE * 8, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
+        if (self.jetman_missile == None) == False :
+            self.jetman_missile.draw()

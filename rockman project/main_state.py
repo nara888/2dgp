@@ -94,7 +94,7 @@ def collide(a, b):
 def update(frame_time):
     player.update(frame_time)
     #enemy.update(frame_time)
-    boss.update(frame_time)
+    boss.update(frame_time, player)
 
     for bullet in bullet_list:
         bullet.update(frame_time)

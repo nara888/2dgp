@@ -8,8 +8,6 @@ class Player:
 
     CHAR_SIZE = 120
     DEAD_EFFECT_SIZE = 80
-    ENTER_EFFECT_YSIZE = 100
-    ENTER_EFFECT_XSIZE = ENTER_EFFECT_YSIZE * 0.85
 
     PIXEL_PER_METER = (10.0 / 0.3)              # 10 pixel 30 cm
     RUN_SPEED_KMPH = 27.0                       # Km / Hour
@@ -32,11 +30,6 @@ class Player:
     DEAD_EFFECT_SPEED_MPS = (DEAD_EFFECT_SPEED_MPM / 60.0)
     DEAD_EFFECT_SPEED_PPS = (DEAD_EFFECT_SPEED_MPS * PIXEL_PER_METER)
 
-    ENTER_SPEED_KMPH = 120.0  # Km / Hour
-    ENTER_SPEED_MPM = (ENTER_SPEED_KMPH * 1000.0 / 60.0)
-    ENTER_SPEED_MPS = (ENTER_SPEED_MPM / 60.0)
-    ENTER_SPEED_PPS = (ENTER_SPEED_MPS * PIXEL_PER_METER)
-
     TIME_PER_ACTION = 1.0
     ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
     FRAMES_PER_ACTION = 8
@@ -45,41 +38,32 @@ class Player:
     DEAD_EFFECT_PER_TIME = 1.0 / TIME_PER_DEAD_EFFECT
     FRAMES_PER_DEAD_EFFECT = 8
 
-    TIME_PER_LANDING_EFFECT = 0.5
-    LANDING_EFFECT_PER_TIME = 1.0 / TIME_PER_LANDING_EFFECT
-    FRAMES_PER_LANDING_EFFECT = 8
-
-    JUMP_POWER = 900
-
     STAND_BB_WIDTH = 25
     STAND_BB_HEIGHT = 30
 
     player_image = None
     dead_effect_image = None
-    enter_effect_image = None
 
     LEFT_RUN, RIGHT_RUN, LEFT_STAND, RIGHT_STAND, \
     LEFT_JUMP, RIGHT_JUMP, LEFT_SLIDING, RIGHT_SLIDING, LEFT_FALL, RIGHT_FALL, \
     LEFT_MOVE_JUMP, RIGHT_MOVE_JUMP, LEFT_MOVE_FALL, RIGHT_MOVE_FALL, \
-    ENTER_STAGE, ESCAPE_STAGE, LANDING_STAGE, DEAD \
-        = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ,16, 17
+    DEAD \
+        = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
 
     def __init__(self):
-        self.x, self.y = 120, 700
+        self.x, self.y = 400, 130
         self.dir = 1
         self.total_frames = 0.0
         self.total_dead_frames = 0.0
-        self.total_landing_frames = 0.0
-        self.run_frame = 0
+        self.frame = 0
         self.dead_frame = 0
-        self.landing_frame = 0
-        self.state = self.ENTER_STAGE   # 플레이어 상태
+        self.state = self.RIGHT_STAND   # 플레이어 상태
         self.shot_state = False     # 샷 상태
         self.action_start_time = 0  # 점프, 슬라이딩 시작 시간
         self.shot_start_time = 0    # 샷 시작 시간
+        self.accel = 850  # 점프 가속
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
-
         self.dead_r = 0
         self.dead_r2 = 0
         self.dead_effect_xpos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -87,28 +71,10 @@ class Player:
         self.dead_effect_xpos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.dead_effect_ypos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.dead_effect_degree = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-
         if Player.player_image == None:
             Player.player_image = load_image('resource/rockman/rockman240x280.png')
         if Player.dead_effect_image == None:
             Player.dead_effect_image = load_image('resource/effect/small_explosion_effect_400x80.png')
-        if Player.enter_effect_image == None:
-            Player.enter_effect_image = load_image('resource/rockman/enter_effect_90x35.png')
-
-    # 스테이지 워프
-    def enter_stage(self, frame_time):
-        if self.y < 130 :
-            self.y = 130
-            self.action_start_time = get_time()
-            self.state = Player.LANDING_STAGE
-        else:
-            distance = Player.ENTER_SPEED_PPS * frame_time
-            self.y -= distance
-
-    # 워프 착지
-    def landing_stage(self, frame_time):
-        if get_time() - self.action_start_time > 0.1:  # 점프 시간이 0.x초를 지나면 낙하로 상태 변경
-            self.state = self.RIGHT_STAND
 
     # 이동
     def move(self, frame_time):
@@ -134,16 +100,17 @@ class Player:
             self.action_start_time = 0
 
     # 점프
+
     def jump(self, frame_time):
         gap_time = 0.1
         if get_time() - self.action_start_time < 0.1:
-            distance = self.JUMP_POWER * frame_time
+            distance = self.accel * frame_time
         elif get_time() - self.action_start_time >= gap_time and get_time() - self.action_start_time < gap_time*2:
-            distance = self.JUMP_POWER * frame_time / 2
+            distance = self.accel * frame_time / 2
         elif get_time() - self.action_start_time >= gap_time*2 and get_time() - self.action_start_time < gap_time*3:
-            distance = self.JUMP_POWER * frame_time / 4
+            distance = self.accel * frame_time / 4
         elif get_time() - self.action_start_time >= gap_time*3:
-            distance = self.JUMP_POWER * frame_time / 6
+            distance = self.accel * frame_time / 6
 
 
         self.y += distance
@@ -166,6 +133,7 @@ class Player:
 
 
     # 낙하
+
     def fall(self, frame_time):
         if self.y < 130:
             self.y = 130
@@ -182,13 +150,13 @@ class Player:
         else:
             gap_time = 0.1
             if get_time() - self.action_start_time < gap_time*0.5:
-                distance = self.JUMP_POWER * frame_time / 6
+                distance = self.accel * frame_time / 6
             elif get_time() - self.action_start_time >= gap_time*0.5 and get_time() - self.action_start_time < gap_time * 1.5:
-                distance = self.JUMP_POWER * frame_time / 4
+                distance = self.accel * frame_time / 4
             elif get_time() - self.action_start_time >= gap_time * 1.5 and get_time() - self.action_start_time < gap_time * 2.5:
-                distance = self.JUMP_POWER * frame_time / 2
+                distance = self.accel * frame_time / 2
             elif get_time() - self.action_start_time >= gap_time * 2.5:
-                distance = self.JUMP_POWER * frame_time
+                distance = self.accel * frame_time
 
             self.y -= distance
             # 이동낙하 중이면 x값을 변경
@@ -316,6 +284,21 @@ class Player:
                     self.state = self.LEFT_JUMP
                 self.action_start_time = get_time()
 
+        # x키 뗌
+        elif (event.type, event.key) == (SDL_KEYUP, SDLK_x):
+            if self.state in (self.RIGHT_JUMP, ):
+                self.state = self.RIGHT_FALL
+                self.action_start_time = get_time()
+            elif self.state in (self.LEFT_JUMP, ):
+                self.state = self.LEFT_FALL
+                self.action_start_time = get_time()
+            elif self.state in (self.RIGHT_MOVE_JUMP, ):
+                self.state = self.RIGHT_MOVE_FALL
+                self.action_start_time = get_time()
+            elif self.state in (self.LEFT_MOVE_JUMP, ):
+                self.state = self.LEFT_MOVE_FALL
+                self.action_start_time = get_time()
+
         # c키 입력 : 슬라이딩
         elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_c):
             if self.state in (self.LEFT_STAND, self.LEFT_RUN):
@@ -342,7 +325,7 @@ class Player:
     def update(self, frame_time):
 
         self.total_frames += Player.FRAMES_PER_ACTION * Player.ACTION_PER_TIME * frame_time
-        self.run_frame = int(self.total_frames) % 3
+        self.frame = int(self.total_frames) % 3
 
         if self.state in (self.LEFT_RUN, self.RIGHT_RUN):
             self.move(frame_time)
@@ -356,12 +339,6 @@ class Player:
             self.total_dead_frames += Player.FRAMES_PER_DEAD_EFFECT * Player.DEAD_EFFECT_PER_TIME * frame_time
             self.dead_frame = int(self.total_dead_frames) % 5
             self.dead(frame_time)
-        elif self.state in (self.ENTER_STAGE, ):
-            self.enter_stage(frame_time)
-        elif self.state in (self.LANDING_STAGE, ):
-            self.total_landing_frames += Player.FRAMES_PER_LANDING_EFFECT * Player.LANDING_EFFECT_PER_TIME * frame_time
-            self.landing_frame = int(self.total_landing_frames) % 5
-            self.landing_stage(frame_time)
 
         if self.shot_state == True:
             self.shot(frame_time)
@@ -382,14 +359,14 @@ class Player:
                 self.player_image.clip_draw(0, 160, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.LEFT_RUN:
             if self.shot_state == False:
-                self.player_image.clip_draw(self.run_frame * 40 + 40, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
+                self.player_image.clip_draw(self.frame * 40 + 40, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.player_image.clip_draw(self.run_frame * 40 + 40, 120, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
+                self.player_image.clip_draw(self.frame * 40 + 40, 120, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state == self.RIGHT_RUN:
             if self.shot_state == False:
-                self.player_image.clip_draw(self.run_frame * 40 + 40, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
+                self.player_image.clip_draw(self.frame * 40 + 40, 240, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
             else:
-                self.player_image.clip_draw(self.run_frame * 40 + 40, 160, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
+                self.player_image.clip_draw(self.frame * 40 + 40, 160, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
         elif self.state in (self.LEFT_JUMP, self.LEFT_MOVE_JUMP, self.LEFT_FALL, self.LEFT_MOVE_FALL):
             if self.shot_state == False:
                 self.player_image.clip_draw(160, 200, 40, 40, self.x, self.y, Player.CHAR_SIZE, Player.CHAR_SIZE)
@@ -411,8 +388,3 @@ class Player:
                 self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.dead_effect_xpos2[i],
                                                  self.dead_effect_ypos2[i], Player.DEAD_EFFECT_SIZE,
                                                  Player.DEAD_EFFECT_SIZE)
-        elif self.state == self.ENTER_STAGE:
-            self.enter_effect_image.clip_draw(0, 0, 30, 35, self.x, self.y, Player.ENTER_EFFECT_XSIZE, Player.ENTER_EFFECT_YSIZE)
-        elif self.state == self.LANDING_STAGE:
-            self.enter_effect_image.clip_draw(self.landing_frame * 30 + 30, 0, 30, 35, self.x, self.y, Player.ENTER_EFFECT_XSIZE, Player.ENTER_EFFECT_YSIZE)
-
