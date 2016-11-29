@@ -114,3 +114,60 @@ class JetMan_Missile(Boss_Bullet):
                 self.image_O.clip_draw(self.OPPOSITE_MISSILE_X_SIZE * self.frame, self.OPPOSITE_MISSILE_Y_SIZE * 0, self.OPPOSITE_MISSILE_X_SIZE,
                                      self.OPPOSITE_MISSILE_Y_SIZE,
                                      self.x, self.y, self.OPPOSITE_X_SIZE, self.OPPOSITE_Y_SIZE)
+
+
+class JetMan_Bomb(Boss_Bullet):
+
+    PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel 30 cm
+    BOMB_SPEED_KMPH = 10.0  # Km / Hour
+    BOMB_SPEED_MPM = (BOMB_SPEED_KMPH * 1000.0 / 60.0)
+    BOMB_SPEED_MPS = (BOMB_SPEED_MPM / 60.0)
+    BOMB_SPEED_PPS = (BOMB_SPEED_MPS * PIXEL_PER_METER)
+
+    TIME_PER_ACTION = 0.5
+    ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
+    FRAMES_PER_ACTION = 8
+
+    image = None
+
+    # 이미지 사이즈
+    BOMB_IMAGE_X_SIZE = 10
+    BOMB_IMAGE_Y_SIZE = 20
+
+    BOMB_X_SIZE = BOMB_IMAGE_X_SIZE * 3
+    BOMB_Y_SIZE = BOMB_IMAGE_Y_SIZE * 3
+
+
+    def __init__(self, jetman):
+        if self.image == None:
+            self.image = load_image('resource/boss/jetman/jetman_bomb.png')
+
+        self.dir = jetman.dir
+        self.x = jetman.x
+        self.y = jetman.y - 10
+        self.action_start_time = 0  # 낙하 시작 시간
+        self.accel = 850  # 초기 낙하 가속
+
+    ##
+    def move(self, frame_time):
+        x_distance = self.BOMB_SPEED_PPS * frame_time * self.dir
+        self.x += x_distance
+
+        gap_time = 0.1
+        if get_time() - self.action_start_time < gap_time * 0.5:
+            y_distance = self.accel * frame_time / 6
+        elif get_time() - self.action_start_time >= gap_time * 0.5 and get_time() - self.action_start_time < gap_time * 1.5:
+            y_distance = self.accel * frame_time / 4
+        elif get_time() - self.action_start_time >= gap_time * 1.5 and get_time() - self.action_start_time < gap_time * 2.5:
+            y_distance = self.accel * frame_time / 2
+        elif get_time() - self.action_start_time >= gap_time * 2.5:
+            y_distance = self.accel * frame_time
+
+        self.y -= y_distance
+
+
+    def update(self, frame_time):
+        self.move(frame_time)
+
+    def draw(self):
+        self.image.clip_draw(0, 0, self.BOMB_IMAGE_X_SIZE, self.BOMB_IMAGE_Y_SIZE, self.x, self.y, self.BOMB_X_SIZE, self.BOMB_Y_SIZE)

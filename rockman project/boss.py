@@ -154,6 +154,7 @@ class JetMan(Boss):
         self.rock_state = False
 
         self.jetman_missile = None
+        self.jetman_bomb_list = []
 
     # 스테이지 등장
     def enter_stage(self, frame_time):
@@ -252,7 +253,7 @@ class JetMan(Boss):
                 self.x += distance
                 if self.x > self.X_RIGHT_FLYING_STOP:
                     self.trigger_flying = False
-                    if random.randint(1, 2) == 1:
+                    if random.randint(1, 1) == 1:
                         self.state = self.LEFT_BOMBING
                         self.trigger_bombing = True
                     else:
@@ -308,6 +309,15 @@ class JetMan(Boss):
             self.y = self.Y_FLYING_START
             if self.dir == self.LEFT_DIR:
                 self.x -= distance
+                if self.x < 800 and len(self.jetman_bomb_list) == 0:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+                elif self.x < 600 and len(self.jetman_bomb_list) == 1:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+                elif self.x < 400 and len(self.jetman_bomb_list) == 2:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+                elif self.x < 200 and len(self.jetman_bomb_list) == 3:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+
                 if self.x < self.X_LEFT_FLYING_STOP:
                     self.trigger_bombing = False
                     self.trigger_landing = True
@@ -470,8 +480,12 @@ class JetMan(Boss):
         elif self.trigger_missile == True:
             self.missile_attack(frame_time, player)
 
-        if (self.jetman_missile == None) == False:
+        if self.jetman_missile:
             self.jetman_missile.update(frame_time)
+
+        if self.jetman_bomb_list:
+            for bomb in self.jetman_bomb_list:
+                bomb.update(frame_time)
 
         #self.move(frame_time)
 
@@ -508,5 +522,8 @@ class JetMan(Boss):
         elif self.state == self.READY:
             self.image.clip_draw(self.IMAGE_SIZE * self.ready_frame, self.IMAGE_SIZE * 8, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
-        if (self.jetman_missile == None) == False :
+        if self.jetman_missile:
             self.jetman_missile.draw()
+        if self.jetman_bomb_list:
+            for bomb in self.jetman_bomb_list:
+                bomb.draw()

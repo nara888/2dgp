@@ -23,11 +23,12 @@
       <file leaf-file-name="boss.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/boss.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="747">
-              <caret line="319" column="34" selection-start-line="319" selection-start-column="34" selection-end-line="319" selection-end-column="34" />
+            <state relative-caret-position="49">
+              <caret line="416" column="16" selection-start-line="416" selection-start-column="16" selection-end-line="416" selection-end-column="16" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
                 <element signature="e#182#775#0" expanded="false" />
+                <element signature="e#2089#2349#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -36,8 +37,8 @@
       <file leaf-file-name="boss_bullet.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/boss_bullet.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="38" column="25" selection-start-line="38" selection-start-column="25" selection-end-line="38" selection-end-column="25" />
+            <state relative-caret-position="63">
+              <caret line="150" column="6" selection-start-line="150" selection-start-column="6" selection-end-line="150" selection-end-column="6" />
               <folding>
                 <element signature="e#0#20#0" expanded="true" />
               </folding>
@@ -45,32 +46,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="jetman_240x540.png" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_240x540.png">
-          <provider selected="true" editor-type-id="images">
-            <state />
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="jetman_missile1.png" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_missile1.png">
-          <provider selected="true" editor-type-id="images">
-            <state />
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="jetman_missile2.png" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_missile2.png">
-          <provider selected="true" editor-type-id="images">
-            <state />
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="player.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/player.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1140">
-              <caret line="85" column="39" selection-start-line="85" selection-start-column="39" selection-end-line="85" selection-end-column="39" />
+            <state relative-caret-position="158">
+              <caret line="104" column="22" selection-start-line="104" selection-start-column="22" selection-end-line="104" selection-end-column="22" />
               <folding />
             </state>
           </provider>
@@ -79,7 +59,7 @@
       <file leaf-file-name="enemy.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/enemy.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1121">
+            <state relative-caret-position="424">
               <caret line="59" column="22" selection-start-line="59" selection-start-column="17" selection-end-line="59" selection-end-column="22" />
               <folding />
             </state>
@@ -96,8 +76,8 @@
       <file leaf-file-name="main_state.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main_state.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="8">
-              <caret line="96" column="35" selection-start-line="96" selection-start-column="35" selection-end-line="96" selection-end-column="35" />
+            <state relative-caret-position="266">
+              <caret line="109" column="17" selection-start-line="109" selection-start-column="17" selection-end-line="109" selection-end-column="17" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -133,8 +113,8 @@
         <option value="$PROJECT_DIR$/player_jump_test.py" />
         <option value="$PROJECT_DIR$/player.py" />
         <option value="$PROJECT_DIR$/main_state.py" />
-        <option value="$PROJECT_DIR$/boss_bullet.py" />
         <option value="$PROJECT_DIR$/boss.py" />
+        <option value="$PROJECT_DIR$/boss_bullet.py" />
       </list>
     </option>
   </component>
@@ -169,6 +149,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -225,7 +206,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="Scratches" />
     </panes>
   </component>
@@ -664,23 +644,10 @@
         <state />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_bomb.png">
-      <provider selected="true" editor-type-id="images">
-        <state />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/player_jump_test.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="231">
           <caret line="395" column="32" selection-start-line="395" selection-start-column="32" selection-end-line="395" selection-end-column="32" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/enemy.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1121">
-          <caret line="59" column="22" selection-start-line="59" selection-start-column="17" selection-end-line="59" selection-end-column="22" />
           <folding />
         </state>
       </provider>
@@ -693,27 +660,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main_state.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="8">
-          <caret line="96" column="35" selection-start-line="96" selection-start-column="35" selection-end-line="96" selection-end-column="35" />
-          <folding>
-            <element signature="e#0#13#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_rockon.png">
       <provider selected="true" editor-type-id="images">
         <state />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/player.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1140">
-          <caret line="85" column="39" selection-start-line="85" selection-start-column="39" selection-end-line="85" selection-end-column="39" />
-          <folding />
-        </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_missile1.png">
@@ -726,21 +675,53 @@
         <state />
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/resource/boss/jetman/jetman_bomb.png">
+      <provider selected="true" editor-type-id="images">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main_state.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="266">
+          <caret line="109" column="17" selection-start-line="109" selection-start-column="17" selection-end-line="109" selection-end-column="17" />
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/player.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="158">
+          <caret line="104" column="22" selection-start-line="104" selection-start-column="22" selection-end-line="104" selection-end-column="22" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/boss.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="747">
-          <caret line="319" column="34" selection-start-line="319" selection-start-column="34" selection-end-line="319" selection-end-column="34" />
+        <state relative-caret-position="49">
+          <caret line="416" column="16" selection-start-line="416" selection-start-column="16" selection-end-line="416" selection-end-column="16" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
             <element signature="e#182#775#0" expanded="false" />
+            <element signature="e#2089#2349#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enemy.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="424">
+          <caret line="59" column="22" selection-start-line="59" selection-start-column="17" selection-end-line="59" selection-end-column="22" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/boss_bullet.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="38" column="25" selection-start-line="38" selection-start-column="25" selection-end-line="38" selection-end-column="25" />
+        <state relative-caret-position="63">
+          <caret line="150" column="6" selection-start-line="150" selection-start-column="6" selection-end-line="150" selection-end-column="6" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
           </folding>
