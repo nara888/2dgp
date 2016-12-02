@@ -93,6 +93,9 @@ class JetMan(Boss):
 
     ROCK_SIZE = 120
 
+    BB_WIDTH = 50
+    BB_HEIGHT = 40
+
     LEFT_DIR = -1
     RIGHT_DIR = 1
 
@@ -129,6 +132,9 @@ class JetMan(Boss):
 
         self.x, self.y = -150, self.Y_LANDING_START
         self.dir = self.RIGHT_DIR
+        self.hp = 0
+        self.hp_frame = 0
+        self.hp_total_frames = 0
         self.frame = 0
         self.total_frames = 0
         self.state = self.RIGHT_LANDING  # 플레이어 상태
@@ -182,13 +188,21 @@ class JetMan(Boss):
             self.ready_frame = 2
         elif self.ready_time >= (self.gap_time * 5) and self.ready_time < (self.gap_time * 6):
             self.ready_frame = 3
-        elif self.ready_time >= (self.gap_time * 6) and self.ready_time < (self.gap_time * 12):
+        elif self.ready_time >= (self.gap_time * 6) and self.ready_time < (self.gap_time * 7):
             self.ready_frame = 2
-        elif self.ready_time >= (self.gap_time * 12):
+
+        if self.hp < 28 and self.ready_time >= (self.gap_time * 7):
+            for i in range(0,29):
+                if self.ready_time >= (self.gap_time * 7) + i * 0.1 and self.ready_time < (self.gap_time * 7) + (i + 1) * 0.1:
+                    self.hp = i
+
+        #if self.ready_time >= (self.gap_time * 8 + 28):
+        if self.hp >= 28:
             self.state = self.LEFT_STAND
             self.dir = self.LEFT_DIR
             self.trigger_ready = False
             self.trigger_take_off = True
+
 
     # 이륙
     def take_off(self, frame_time):
@@ -253,7 +267,7 @@ class JetMan(Boss):
                 self.x += distance
                 if self.x > self.X_RIGHT_FLYING_STOP:
                     self.trigger_flying = False
-                    if random.randint(1, 1) == 1:
+                    if random.randint(1, 2) == 1:
                         self.state = self.LEFT_BOMBING
                         self.trigger_bombing = True
                     else:
@@ -303,7 +317,9 @@ class JetMan(Boss):
         self.ready_time = get_time() - self.ready_start_time
         self.gap_time = 1
         if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
-            pass
+            if self.jetman_bomb_list:
+                del(self.jetman_bomb_list)
+                self.jetman_bomb_list = []
         else:
             distance = self.BOMBING_X_SPEED_PPS * frame_time
             self.y = self.Y_FLYING_START
@@ -328,6 +344,15 @@ class JetMan(Boss):
                     self.ready_start_time = get_time()
             elif self.dir == self.RIGHT_DIR:
                 self.x += distance
+                if self.x > 0 and len(self.jetman_bomb_list) == 0:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+                elif self.x > 200 and len(self.jetman_bomb_list) == 1:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+                elif self.x > 400 and len(self.jetman_bomb_list) == 2:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+                elif self.x > 600 and len(self.jetman_bomb_list) == 3:
+                    self.jetman_bomb_list.append(JetMan_Bomb(self))
+
                 if self.x > self.X_RIGHT_FLYING_STOP:
                     self.trigger_bombing = False
                     self.trigger_landing = True
@@ -454,10 +479,10 @@ class JetMan(Boss):
         pass
 
     def get_bb(self):
-        pass
+        return self.x - self.BB_WIDTH, self.y - self.BB_HEIGHT, self.x + self.BB_WIDTH, self.y + self.BB_HEIGHT
 
     def draw_bb(self):
-        pass
+        draw_rectangle(*self.get_bb())
 
     def update(self, frame_time, player):
         self.total_frames += self.FRAMES_PER_ACTION * self.ACTION_PER_TIME * frame_time
@@ -524,6 +549,8 @@ class JetMan(Boss):
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
         if self.jetman_missile:
             self.jetman_missile.draw()
+            self.jetman_missile.draw_bb()
         if self.jetman_bomb_list:
             for bomb in self.jetman_bomb_list:
                 bomb.draw()
+                bomb.draw_bb()

@@ -13,6 +13,7 @@ from background import Background
 from brick import Jetman_Long_Brick
 from enemy import *
 from boss import *
+from ui import *
 
 name = "MainState"
 
@@ -22,25 +23,31 @@ background = None
 brick = None
 enemy = None
 boss = None
+hp_bar = None
+boss_hp_bar = None
 
 def create_world():
-    global player, bullet_list,  background, brick, enemy, boss
+    global player, bullet_list,  background, brick, enemy, boss, hp_bar, boss_hp_bar
 
     background = Background()
     player = Player()
     #enemy = Mr_shiniri()
     #brick = Jetman_Long_Brick()
     boss = JetMan()
+    hp_bar = Hp_Bar(player)
+    boss_hp_bar = Boss_Hp_Bar(boss)
     bullet_list = []
 
 def destroy_world():
-    global player, bullet_list, background, brick, enemy, boss
+    global player, bullet_list, background, brick, enemy, boss, hp_bar
 
     del(player)
     #del(enemy)
     del(boss)
     del(background)
     del(bullet_list)
+    del(hp_bar)
+    del(boss_hp_bar)
     #del(brick)
 
 
@@ -95,6 +102,8 @@ def update(frame_time):
     player.update(frame_time)
     #enemy.update(frame_time)
     boss.update(frame_time, player)
+    hp_bar.update(frame_time)
+    boss_hp_bar.update(frame_time)
 
     for bullet in bullet_list:
         bullet.update(frame_time)
@@ -111,6 +120,11 @@ def draw(frame_time):
     #brick.draw()
     for bullet in bullet_list:
         bullet.draw()
+    hp_bar.draw()
+    boss_hp_bar.draw()
+
+    player.draw_bb()
+    boss.draw_bb()
 
     update_canvas()
 
