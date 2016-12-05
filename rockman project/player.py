@@ -2,7 +2,7 @@ import sys
 sys.path.append('../LabsAll/Labs')
 
 from pico2d import *
-
+from player_bullet import Bullet
 
 class Player:
 
@@ -58,6 +58,8 @@ class Player:
 
     MAX_HP = 28
 
+    STOP_TIME = 2
+
     player_image = None
     dead_effect_image = None
     enter_effect_image = None
@@ -93,6 +95,8 @@ class Player:
         self.left_key_state = False  # 좌측 키 누름 상태
         self.right_key_state = False # 우측 키 누름 상태
 
+        self.bullet_list = []
+
         self.dead_r = 0
         self.dead_r2 = 0
         self.dead_effect_xpos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -111,7 +115,7 @@ class Player:
 
     # 레디
     def ready(self, frame_time):
-        if get_time() - self.action_start_time > 2:  # 0.x초를 지나면 상태 변경
+        if get_time() - self.action_start_time > self.STOP_TIME:  # 0.x초를 지나면 상태 변경
             self.state = self.ENTER_STAGE
 
     # 스테이지 워프
@@ -132,7 +136,7 @@ class Player:
 
     # 정지
     def stop(self, frame_time):
-        if get_time() - self.action_start_time > 3.0:  # 0.x초를 지나면 상태 변경
+        if get_time() - self.action_start_time > self.STOP_TIME:  # 0.x초를 지나면 상태 변경
             if self.right_key_state == True:
                 self.state = self.RIGHT_RUN
             elif self.left_key_state == True:
@@ -315,9 +319,11 @@ class Player:
 
         # z키 입력 : 공격
         elif (event.type, event.key) == (SDL_KEYDOWN, SDLK_z):
-            if self.state in (self.LEFT_SLIDING, self.RIGHT_SLIDING):
+            if self.state in (self.LEFT_SLIDING, self.RIGHT_SLIDING, self.STOP, self.ENTER_STAGE, self.LANDING_STAGE):
                 pass
             else:
+                if len(self.bullet_list) < 3:  # 블릿 리스트에 블릿이 2개 이하 이면 블릿 생성
+                    self.bullet_list.append(Bullet(self))
                 self.shot_state = True
                 self.shot_start_time = get_time()
 
@@ -347,6 +353,8 @@ class Player:
                 else:
                     self.state = self.LEFT_JUMP
                 self.action_start_time = get_time()
+
+
 
         # x키 뗌
         elif (event.type, event.key) == (SDL_KEYUP, SDLK_x):
@@ -419,6 +427,11 @@ class Player:
         if self.shot_state == True:
             self.shot(frame_time)
 
+        for bullet in self.bullet_list:
+            bullet.update(frame_time)
+            if bullet.x > 800 or bullet.x < 0:
+                self.bullet_list.remove(bullet)
+
         print("Change Time: %f, Total Frames: %d" %(get_time(), self.total_frames))
 
     def draw(self):
@@ -471,3 +484,9 @@ class Player:
             self.enter_effect_image.clip_draw(self.landing_frame * 30 + 30, 0, 30, 35, self.x, self.y, self.ENTER_EFFECT_XSIZE, self.ENTER_EFFECT_YSIZE)
         elif self.state == self.READY and self.frame == 0:
             self.ready_text_image.draw(400, 400)
+
+        for bullet in self.bullet_list:
+            bullet.draw()
+
+    def get_bullet_list(self):
+        return self.bullet_list

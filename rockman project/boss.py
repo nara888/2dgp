@@ -85,13 +85,19 @@ class JetMan(Boss):
     TIME_PER_ROCK = 0.8
     ROCK_PER_TIME = 1.0 / TIME_PER_ROCK
 
+    TIME_PER_HIT = 0.3
+    HIT_PER_TIME = 1.0 / TIME_PER_HIT
+
     IMAGE_SIZE = 60
     ROCK_IMAGE_SIZE = 35
+    HIT_IMAGE_SIZE = 30
 
     X_SIZE = 180
     Y_SIZE = X_SIZE
 
     ROCK_SIZE = 120
+
+    HIT_SIZE = HIT_IMAGE_SIZE * 3
 
     BB_WIDTH = 50
     BB_HEIGHT = 40
@@ -104,6 +110,7 @@ class JetMan(Boss):
 
     image = None
     rock_on_image = None
+    hit_image = None
 
     GROUND_LINE = 150
     Y_LANDING_START = 400
@@ -129,6 +136,8 @@ class JetMan(Boss):
             self.image = load_image('resource/boss/jetman/jetman_240x540.png')
         if self.rock_on_image == None:
             self.rock_on_image = load_image('resource/boss/jetman/jetman_rockon.png')
+        if self.hit_image == None:
+            self.hit_image = load_image('resource/boss/hit.png')
 
         self.x, self.y = -150, self.Y_LANDING_START
         self.dir = self.RIGHT_DIR
@@ -140,6 +149,14 @@ class JetMan(Boss):
         self.state = self.RIGHT_LANDING  # 플레이어 상태
         self.shot_state = False  # 샷 상태
         self.shot_start_time = 0  # 샷 시작 시간
+
+
+        ###
+        self.hit_state = False # 맞은 상태인가
+        self.hit_start_time = 0 # 맞기 시작시간
+        self.hit_total_frames = 0
+        self.hit_frame = 0
+
         self.trigger_enter = True   # 최초 등장
         self.trigger_ready = False # 전투 준비
         self.trigger_take_off = False # 이륙
@@ -193,7 +210,7 @@ class JetMan(Boss):
 
         if self.hp < 28 and self.ready_time >= (self.gap_time * 7):
             for i in range(0,29):
-                if self.ready_time >= (self.gap_time * 7) + i * 0.1 and self.ready_time < (self.gap_time * 7) + (i + 1) * 0.1:
+                if self.ready_time >= (self.gap_time * 7) + i * 0.07 and self.ready_time < (self.gap_time * 7) + (i + 1) * 0.07:
                     self.hp = i
 
         #if self.ready_time >= (self.gap_time * 8 + 28):
@@ -474,6 +491,20 @@ class JetMan(Boss):
                 self.y = self.GROUND_LINE
         self.y += distance
 
+    def hit_check(self):
+        return self.hit_state
+
+    # 데미지
+    def damaged(self, frame_time):
+        self.hp -= 1
+        self.hit_state = True  # 맞은 상태인가
+        self.hit_start_time = get_time()
+
+    # 무적시간 해제
+    def hit_recovery(self, frame_time):
+        if get_time() - self.hit_start_time > 0.8:
+            self.hit_state = False
+
     # 사망
     def dead(self, frame_time):
         pass
@@ -505,6 +536,11 @@ class JetMan(Boss):
         elif self.trigger_missile == True:
             self.missile_attack(frame_time, player)
 
+        if self.hit_state:
+            self.hit_recovery(frame_time)
+            self.hit_total_frames += self.FRAMES_PER_ACTION * self.HIT_PER_TIME * frame_time
+            self.hit_frame = int(self.hit_total_frames) % 2
+
         if self.jetman_missile:
             self.jetman_missile.update(frame_time)
 
@@ -515,7 +551,10 @@ class JetMan(Boss):
         #self.move(frame_time)
 
     def draw(self):
-        if self.state == self.LEFT_STAND:
+        if self.hit_state and self.hit_frame == 0:
+            self.hit_image.draw(self.x, self.y, self.HIT_SIZE, self.HIT_SIZE)
+
+        elif self.state == self.LEFT_STAND:
             self.image.clip_draw(self.IMAGE_SIZE * self.frame, self.IMAGE_SIZE * 6, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
         elif self.state == self.RIGHT_STAND:
@@ -547,6 +586,7 @@ class JetMan(Boss):
         elif self.state == self.READY:
             self.image.clip_draw(self.IMAGE_SIZE * self.ready_frame, self.IMAGE_SIZE * 8, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
+
         if self.jetman_missile:
             self.jetman_missile.draw()
             self.jetman_missile.draw_bb()

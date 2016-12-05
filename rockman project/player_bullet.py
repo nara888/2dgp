@@ -34,3 +34,9 @@ class Bullet:
 
     def draw(self):
         self.image.draw(self.x, self.y, Bullet.BULLET_SIZE, Bullet.BULLET_SIZE)
+
+    def get_bb(self):
+        return self.x - self.BULLET_SIZE//2, self.y - self.BULLET_SIZE//2, self.x + self.BULLET_SIZE//2, self.y + self.BULLET_SIZE//2
+
+    def draw_bb(self):
+        draw_rectangle(*self.get_bb())

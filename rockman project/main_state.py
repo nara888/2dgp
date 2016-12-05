@@ -8,7 +8,6 @@ import game_framework
 import title_state
 
 from player import Player
-from player_bullet import Bullet
 from background import Background
 from brick import Jetman_Long_Brick
 from enemy import *
@@ -18,16 +17,17 @@ from ui import *
 name = "MainState"
 
 player = None
-player_bullet = None
 background = None
 brick = None
 enemy = None
 boss = None
 hp_bar = None
 boss_hp_bar = None
+bullet_list = None
+start_time = 0
 
 def create_world():
-    global player, bullet_list,  background, brick, enemy, boss, hp_bar, boss_hp_bar
+    global player, bullet_list, background, brick, enemy, boss, hp_bar, boss_hp_bar, start_time
 
     background = Background()
     player = Player()
@@ -36,7 +36,9 @@ def create_world():
     boss = JetMan()
     hp_bar = Hp_Bar(player)
     boss_hp_bar = Boss_Hp_Bar(boss)
-    bullet_list = []
+    bullet_list = player.get_bullet_list()
+
+    start_time = get_time()
 
 def destroy_world():
     global player, bullet_list, background, brick, enemy, boss, hp_bar
@@ -45,9 +47,10 @@ def destroy_world():
     #del(enemy)
     del(boss)
     del(background)
-    del(bullet_list)
     del(hp_bar)
     del(boss_hp_bar)
+    if bullet_list:
+        del(bullet_list)
     #del(brick)
 
 
@@ -78,12 +81,7 @@ def handle_events(frame_time):
                 game_framework.quit()
             else:
                 player.handle_event(event)
-                if (event.type, event.key) == (SDL_KEYDOWN, SDLK_z):
-                    if player.state in (player.LEFT_SLIDING, player.RIGHT_SLIDING): # 플레이어가 슬라이딩 상태이면 블릿 생성 X
-                        return
-                    else:
-                        if len(bullet_list) < 3:    # 블릿 리스트에 블릿이 2개 이하 이면 블릿 생성
-                            bullet_list.append(Bullet(player))
+
 
 """
 def collide(a, b):
@@ -99,6 +97,11 @@ def collide(a, b):
 """
 
 def update(frame_time):
+    wait_time = 1
+
+    if get_time() - start_time > wait_time:
+        background.music_start()
+
     player.update(frame_time)
     #enemy.update(frame_time)
     boss.update(frame_time, player)
@@ -106,9 +109,10 @@ def update(frame_time):
     boss_hp_bar.update(frame_time)
 
     for bullet in bullet_list:
-        bullet.update(frame_time)
-        if bullet.x > 800 or bullet.x < 0:
+        if collide(boss, bullet):
             bullet_list.remove(bullet)
+            if boss.hit_check() == False:
+                boss.damaged(frame_time)
 
 
 def draw(frame_time):
@@ -118,8 +122,6 @@ def draw(frame_time):
     boss.draw()
     #enemy.draw()
     #brick.draw()
-    for bullet in bullet_list:
-        bullet.draw()
     hp_bar.draw()
     boss_hp_bar.draw()
 
@@ -129,6 +131,16 @@ def draw(frame_time):
     update_canvas()
 
 
+def collide(a, b):
+    left_a, bottom_a, right_a, top_a = a.get_bb()
+    left_b, bottom_b, right_b, top_b = b.get_bb()
+
+    if left_a > right_b: return False
+    if right_a < left_b: return False
+    if top_a < bottom_b: return False
+    if bottom_a > top_b: return False
+
+    return True
 
 
 
