@@ -10,12 +10,10 @@ bgm = None
 
 def enter():
     global image, bgm
-    if image == None:
-        image = load_image('resource/state/title.png')
-    if bgm == None:
-        bgm = load_wav('resource/bgm/title.wav')
-        bgm.set_volume(64)
-        bgm.repeat_play()
+    image = load_image('resource/state/title.png')
+    bgm = load_wav('resource/bgm/title.wav')
+    bgm.set_volume(64)
+    bgm.repeat_play()
 
 
 def exit():

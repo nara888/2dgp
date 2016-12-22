@@ -11,7 +11,7 @@ from player import *
 # 상속받아 각각의 적들을 만든다
 class Boss:
 
-    image = None
+
     def __init__(self):
         pass
 
@@ -37,7 +37,7 @@ class Boss:
         pass
 
     # 사망
-    def dead(self, frame_time):
+    def dead(self, frame_time, child_boss):
         pass
 
 
@@ -46,7 +46,7 @@ class Boss:
         pass
 
     def draw_bb(self):
-        pass
+        draw_rectangle(*self.get_bb())
 
 
     def handle_event(self, event):
@@ -62,7 +62,9 @@ class Boss:
 
 class JetMan(Boss):
 
-    PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel 30 cm
+    # 10 pixel 30 cm
+    PIXEL_PER_METER = (10.0 / 0.3)
+
     FLYING_X_SPEED_KMPH = 60.0  # Km / Hour
     FLYING_X_SPEED_MPM = (FLYING_X_SPEED_KMPH * 1000.0 / 60.0)
     FLYING_X_SPEED_MPS = (FLYING_X_SPEED_MPM / 60.0)
@@ -72,6 +74,17 @@ class JetMan(Boss):
     FLYING_Y_SPEED_MPM = (FLYING_Y_SPEED_KMPH * 1000.0 / 60.0)
     FLYING_Y_SPEED_MPS = (FLYING_Y_SPEED_MPM / 60.0)
     FLYING_Y_SPEED_PPS = (FLYING_Y_SPEED_MPS * PIXEL_PER_METER)
+
+    DEAD_EFFECT_SIZE = 80
+
+    DEAD_EFFECT_SPEED_KMPH = 30.0
+    DEAD_EFFECT_SPEED_MPM = (DEAD_EFFECT_SPEED_KMPH * 1000.0 / 60.0)
+    DEAD_EFFECT_SPEED_MPS = (DEAD_EFFECT_SPEED_MPM / 60.0)
+    DEAD_EFFECT_SPEED_PPS = (DEAD_EFFECT_SPEED_MPS * PIXEL_PER_METER)
+
+    TIME_PER_DEAD_EFFECT = 0.5
+    DEAD_EFFECT_PER_TIME = 1.0 / TIME_PER_DEAD_EFFECT
+    FRAMES_PER_DEAD_EFFECT = 8
 
     JUMP_POWER = 1300
 
@@ -111,6 +124,7 @@ class JetMan(Boss):
     image = None
     rock_on_image = None
     hit_image = None
+    dead_effect_image = None
 
     GROUND_LINE = 150
     Y_LANDING_START = 400
@@ -128,8 +142,8 @@ class JetMan(Boss):
     RIGHT_STAND, LEFT_STAND, RIGHT_RUN, LEFT_RUN, RIGHT_FLYING, LEFT_FLYING, \
     RIGHT_LANDING, LEFT_LANDING, RIGHT_TAKE_OFF, LEFT_TAKE_OFF, \
     RIGHT_JUMP, LEFT_JUMP, RIGHT_FALL, LEFT_FALL, \
-    RIGHT_BOMBING, LEFT_BOMBING, LEFT_MISSILE, RIGHT_MISSILE, READY \
-        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+    RIGHT_BOMBING, LEFT_BOMBING, LEFT_MISSILE, RIGHT_MISSILE, READY, DEAD \
+        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
 
     def __init__(self):
         if self.image == None:
@@ -138,6 +152,9 @@ class JetMan(Boss):
             self.rock_on_image = load_image('resource/boss/jetman/jetman_rockon.png')
         if self.hit_image == None:
             self.hit_image = load_image('resource/boss/hit.png')
+        if self.dead_effect_image == None:
+            self.dead_effect_image = load_image('resource/effect/small_explosion_effect_400x80.png')
+
 
         self.x, self.y = -150, self.Y_LANDING_START
         self.dir = self.RIGHT_DIR
@@ -149,6 +166,7 @@ class JetMan(Boss):
         self.state = self.RIGHT_LANDING  # 플레이어 상태
         self.shot_state = False  # 샷 상태
         self.shot_start_time = 0  # 샷 시작 시간
+        self.ground_y = 70 + self.Y_SIZE / 2
 
 
         ###
@@ -170,14 +188,30 @@ class JetMan(Boss):
         self.ready_frame = 0
         self.jump_frame = 0
 
+        self.missile_shot = False
+        self.bomb_shot = 0
+
         self.rock_x = 0
         self.rock_y = 0
         self.rock_frame = 0
         self.rock_total_frames = 0
         self.rock_state = False
 
+        self.total_dead_frames = 0.0
+        self.dead_frame = 0
+        self.dead_r = 0
+        self.dead_r2 = 0
+        self.dead_effect_xpos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_ypos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_xpos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_ypos2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.dead_effect_degree = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
         self.jetman_missile = None
         self.jetman_bomb_list = []
+
+        self.sound_manager = None
+        self.sound_trigger = False
 
     # 스테이지 등장
     def enter_stage(self, frame_time):
@@ -186,11 +220,15 @@ class JetMan(Boss):
         if self.y > self.GROUND_LINE:
             distance = self.FLYING_Y_SPEED_PPS * frame_time
             self.y -= distance
+        if self.sound_trigger == False:
+            self.sound_manager.landing()
+            self.sound_trigger = True
         if self.x > 700:
             self.state = self.LEFT_STAND
             self.trigger_enter = False
             self.trigger_ready = True
             self.ready_start_time = get_time()
+            self.sound_trigger = False
 
 
     # 전투 준비
@@ -209,6 +247,9 @@ class JetMan(Boss):
             self.ready_frame = 2
 
         if self.hp < 28 and self.ready_time >= (self.gap_time * 7):
+            if self.sound_trigger == False:
+                self.sound_manager.regen()
+                self.sound_trigger = True
             for i in range(0,29):
                 if self.ready_time >= (self.gap_time * 7) + i * 0.07 and self.ready_time < (self.gap_time * 7) + (i + 1) * 0.07:
                     self.hp = i
@@ -219,6 +260,7 @@ class JetMan(Boss):
             self.dir = self.LEFT_DIR
             self.trigger_ready = False
             self.trigger_take_off = True
+            self.sound_trigger = False
 
 
     # 이륙
@@ -233,6 +275,9 @@ class JetMan(Boss):
                 distance = self.FLYING_Y_SPEED_PPS * frame_time
                 self.y += distance
                 self.state = self.LEFT_TAKE_OFF
+                if self.sound_trigger == False:
+                    self.sound_manager.take_off()
+                    self.sound_trigger = True
                 if self.x < self.X_LEFT_FLYING_STOP:
                     self.trigger_take_off = False
                     self.trigger_flying = True
@@ -240,6 +285,7 @@ class JetMan(Boss):
                     self.state = self.RIGHT_FLYING
                     self.dir = self.RIGHT_DIR
                     self.y = self.Y_FLYING_START
+                    self.sound_trigger = False
         # 오른쪽 방향일때 오른쪽 이륙
         elif self.dir == self.RIGHT_DIR:
             self.x += distance
@@ -248,6 +294,9 @@ class JetMan(Boss):
                 distance = self.FLYING_Y_SPEED_PPS * frame_time
                 self.y += distance
                 self.state = self.RIGHT_TAKE_OFF
+                if self.sound_trigger == False:
+                    self.sound_manager.take_off()
+                    self.sound_trigger = True
                 if self.x > self.X_RIGHT_FLYING_STOP:
                     self.trigger_take_off = False
                     self.trigger_flying = True
@@ -255,6 +304,7 @@ class JetMan(Boss):
                     self.state = self.LEFT_FLYING
                     self.dir = self.LEFT_DIR
                     self.y = self.Y_FLYING_START
+                    self.sound_trigger = False
 
     # 비행
     def flying(self, frame_time):
@@ -302,31 +352,38 @@ class JetMan(Boss):
 
         if self.ready_time >= (self.gap_time * 0) and self.ready_time < (self.gap_time * 1):
             self.jetman_missile = None
-            #pass
+            self.missile_shot = False
 
         elif self.ready_time >= (self.gap_time * 1) and self.ready_time < (self.gap_time * 3):
             self.rock_total_frames += self.FRAMES_PER_ACTION * self.ROCK_PER_TIME * frame_time
             self.rock_frame = int(self.rock_total_frames) % self.ROCK_ANI_NUM
             self.rock_state = True
             self.rock_x, self.rock_y = player.x, player.y + 10
-        elif self.ready_time >= (self.gap_time * 3) and self.ready_time < (self.gap_time * 4):
+            if self.sound_trigger == False:
+                self.sound_manager.rock_on()
+                self.sound_trigger = True
+        elif self.ready_time >= (self.gap_time * 3) and self.ready_time < (self.gap_time * 4.2):
             self.rock_total_frames += self.FRAMES_PER_ACTION * self.ROCK_PER_TIME * frame_time * 2
             self.rock_frame = int(self.rock_total_frames) % self.ROCK_ANI_NUM
             self.rock_state = True
             self.rock_x, self.rock_y = player.x, player.y + 10
-        elif self.ready_time >= (self.gap_time * 4) and self.ready_time < (self.gap_time * 5):
+        elif self.ready_time >= (self.gap_time * 4.2) and self.ready_time < (self.gap_time * 5.2):
             self.rock_state = False
-            if self.jetman_missile == None:
+            if self.missile_shot == False:
                 self.jetman_missile = JetMan_Missile(self, player)
-        elif self.ready_time >= (self.gap_time * 5):
+                self.missile_shot = True
+                self.sound_manager.missile()
+        elif self.ready_time >= (self.gap_time * 5.2):
             self.trigger_missile = False
             self.trigger_landing = True
             self.y = self.Y_LANDING_START
             self.ready_start_time = get_time()
+            self.sound_trigger = False
             if self.state == self.LEFT_MISSILE:
                 self.state = self.LEFT_LANDING
             elif self.state == self.RIGHT_MISSILE:
                 self.state = self.RIGHT_LANDING
+
 
 
     # 폭격
@@ -342,14 +399,22 @@ class JetMan(Boss):
             self.y = self.Y_FLYING_START
             if self.dir == self.LEFT_DIR:
                 self.x -= distance
-                if self.x < 800 and len(self.jetman_bomb_list) == 0:
+                if self.x < 800 and self.bomb_shot == 0:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
-                elif self.x < 600 and len(self.jetman_bomb_list) == 1:
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
+                elif self.x < 600 and self.bomb_shot == 1:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
-                elif self.x < 400 and len(self.jetman_bomb_list) == 2:
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
+                elif self.x < 400 and self.bomb_shot == 2:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
-                elif self.x < 200 and len(self.jetman_bomb_list) == 3:
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
+                elif self.x < 200 and self.bomb_shot == 3:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
 
                 if self.x < self.X_LEFT_FLYING_STOP:
                     self.trigger_bombing = False
@@ -359,16 +424,25 @@ class JetMan(Boss):
                     self.y = self.Y_LANDING_START
                     self.dir = self.RIGHT_DIR
                     self.ready_start_time = get_time()
+                    self.bomb_shot = 0
             elif self.dir == self.RIGHT_DIR:
                 self.x += distance
-                if self.x > 0 and len(self.jetman_bomb_list) == 0:
+                if self.x > 0 and self.bomb_shot == 0:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
-                elif self.x > 200 and len(self.jetman_bomb_list) == 1:
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
+                elif self.x > 200 and self.bomb_shot == 1:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
-                elif self.x > 400 and len(self.jetman_bomb_list) == 2:
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
+                elif self.x > 400 and self.bomb_shot == 2:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
-                elif self.x > 600 and len(self.jetman_bomb_list) == 3:
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
+                elif self.x > 600 and self.bomb_shot == 3:
                     self.jetman_bomb_list.append(JetMan_Bomb(self))
+                    self.bomb_shot += 1
+                    self.sound_manager.bomb()
 
                 if self.x > self.X_RIGHT_FLYING_STOP:
                     self.trigger_bombing = False
@@ -378,6 +452,7 @@ class JetMan(Boss):
                     self.y = self.Y_LANDING_START
                     self.dir = self.LEFT_DIR
                     self.ready_start_time = get_time()
+                    self.bomb_shot = 0
 
     # 착륙
     def landing(self, frame_time):
@@ -393,24 +468,32 @@ class JetMan(Boss):
                 if self.y > self.GROUND_LINE:
                     distance = self.FLYING_Y_SPEED_PPS * frame_time
                     self.y -= distance
+                    if self.sound_trigger == False and self.y <= self.GROUND_LINE + 50:
+                        self.sound_manager.landing()
+                        self.sound_trigger = True
                 if self.x < self.X_LEFT_LANDING_STOP:
                     self.state = self.RIGHT_STAND
                     self.trigger_landing = False
                     self.trigger_jump = True
                     self.dir = self.RIGHT_DIR
                     self.ready_start_time = get_time()
+                    self.sound_trigger = False
 
             elif self.dir == self.RIGHT_DIR:
                 self.x += distance
                 if self.y > self.GROUND_LINE:
                     distance = self.FLYING_Y_SPEED_PPS * frame_time
                     self.y -= distance
+                    if self.sound_trigger == False and self.y <= self.GROUND_LINE + 50:
+                        self.sound_manager.landing()
+                        self.sound_trigger = True
                 if self.x > self.X_RIGHT_LANDING_STOP:
                     self.state = self.LEFT_STAND
                     self.trigger_landing = False
                     self.trigger_jump = True
                     self.dir = self.LEFT_DIR
                     self.ready_start_time = get_time()
+                    self.sound_trigger = False
 
 
     # 점프 공격
@@ -427,6 +510,7 @@ class JetMan(Boss):
                 self.state = self.LEFT_JUMP
                 self.jump_frame = 0
                 self.jetman_missile = None
+                self.missile_shot = False
             elif self.ready_time >= gap_time + start_gap_time and self.ready_time < gap_time*2 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 2
                 self.jump_frame = 1
@@ -436,8 +520,10 @@ class JetMan(Boss):
             elif self.ready_time >= gap_time*3 + start_gap_time and self.ready_time < gap_time*4 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 6
                 self.jump_frame = 3
-                if self.jetman_missile == None:
+                if self.missile_shot == False:
                     self.jetman_missile = JetMan_Missile(self, player)
+                    self.missile_shot = True
+                    self.sound_manager.missile()
             # 추락
             elif self.ready_time >= gap_time * 4 + start_gap_time and self.ready_time < gap_time * 5 + start_gap_time:
                 distance = -(self.JUMP_POWER * frame_time / 6)
@@ -462,6 +548,7 @@ class JetMan(Boss):
                 self.state = self.RIGHT_JUMP
                 self.jump_frame = 0
                 self.jetman_missile = None
+                self.missile_shot = False
             elif self.ready_time >= gap_time + start_gap_time and self.ready_time < gap_time * 2 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 2
                 self.jump_frame = 1
@@ -471,8 +558,10 @@ class JetMan(Boss):
             elif self.ready_time >= gap_time * 3 + start_gap_time and self.ready_time < gap_time * 4 + start_gap_time:
                 distance = self.JUMP_POWER * frame_time / 6
                 self.jump_frame = 3
-                if self.jetman_missile == None:
+                if self.missile_shot == False:
                     self.jetman_missile = JetMan_Missile(self, player)
+                    self.missile_shot = True
+                    self.sound_manager.missile()
             # 추락
             elif self.ready_time >= gap_time * 4 + start_gap_time and self.ready_time < gap_time * 5 + start_gap_time:
                 distance = -(self.JUMP_POWER * frame_time / 6)
@@ -496,9 +585,20 @@ class JetMan(Boss):
 
     # 데미지
     def damaged(self, frame_time):
-        self.hp -= 1
+        self.hp -= 2
+        if self.hp <= 0:
+            self.state = self.DEAD
+            self.sound_manager.dead()
+            for i in range(0, 8):
+                self.dead_effect_xpos[i] = self.x
+                self.dead_effect_ypos[i] = self.y
+                self.dead_effect_xpos2[i] = self.x
+                self.dead_effect_ypos2[i] = self.y
+                self.dead_effect_degree[i] = 45 * i
+            return
         self.hit_state = True  # 맞은 상태인가
         self.hit_start_time = get_time()
+        self.sound_manager.enem_damaged()
 
     # 무적시간 해제
     def hit_recovery(self, frame_time):
@@ -507,19 +607,38 @@ class JetMan(Boss):
 
     # 사망
     def dead(self, frame_time):
-        pass
+        distance = self.DEAD_EFFECT_SPEED_PPS * frame_time
+        self.dead_r = self.dead_r + distance
+        distance = self.DEAD_EFFECT_SPEED_PPS * frame_time * 2
+        self.dead_r2 = self.dead_r2 + distance
+
+        for i in range(0, 8):
+            radian = self.dead_effect_degree[i] * 3.141592 / 180
+            self.dead_effect_xpos[i] = self.x + self.dead_r * math.cos(radian)
+            self.dead_effect_ypos[i] = self.y + self.dead_r * math.sin(radian)
+            self.dead_effect_xpos2[i] = self.x + self.dead_r2 * math.cos(radian)
+            self.dead_effect_ypos2[i] = self.y + self.dead_r2 * math.sin(radian)
+
 
     def get_bb(self):
         return self.x - self.BB_WIDTH, self.y - self.BB_HEIGHT, self.x + self.BB_WIDTH, self.y + self.BB_HEIGHT
 
-    def draw_bb(self):
-        draw_rectangle(*self.get_bb())
+    #def draw_bb(self):
+        #draw_rectangle(*self.get_bb())
+
+    def get_clear(self):
+        if self.state == self.DEAD:
+            return True
 
     def update(self, frame_time, player):
         self.total_frames += self.FRAMES_PER_ACTION * self.ACTION_PER_TIME * frame_time
         self.frame = int(self.total_frames) % self.SPRITE_ANIMATION_NUM
 
-        if self.trigger_enter == True:
+        if self.state == self.DEAD:
+            self.total_dead_frames += Player.FRAMES_PER_DEAD_EFFECT * Player.DEAD_EFFECT_PER_TIME * frame_time
+            self.dead_frame = int(self.total_dead_frames) % 5
+            self.dead(frame_time)
+        elif self.trigger_enter == True:
             self.enter_stage(frame_time)
         elif self.trigger_ready == True:
             self.ready(frame_time)
@@ -535,6 +654,7 @@ class JetMan(Boss):
             self.jump(frame_time, player)
         elif self.trigger_missile == True:
             self.missile_attack(frame_time, player)
+
 
         if self.hit_state:
             self.hit_recovery(frame_time)
@@ -586,11 +706,22 @@ class JetMan(Boss):
         elif self.state == self.READY:
             self.image.clip_draw(self.IMAGE_SIZE * self.ready_frame, self.IMAGE_SIZE * 8, self.IMAGE_SIZE, self.IMAGE_SIZE,
                                  self.x, self.y, self.X_SIZE, self.Y_SIZE)
+        elif self.state == self.DEAD:
+            for i in range(0, 8):
+                self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.dead_effect_xpos[i],
+                                                 self.dead_effect_ypos[i], self.DEAD_EFFECT_SIZE, self.DEAD_EFFECT_SIZE)
+                self.dead_effect_image.clip_draw(self.dead_frame * 80, 0, 80, 80, self.dead_effect_xpos2[i],
+                                                 self.dead_effect_ypos2[i], self.DEAD_EFFECT_SIZE,
+                                                 self.DEAD_EFFECT_SIZE)
 
         if self.jetman_missile:
             self.jetman_missile.draw()
-            self.jetman_missile.draw_bb()
+            #self.jetman_missile.draw_bb()
         if self.jetman_bomb_list:
             for bomb in self.jetman_bomb_list:
                 bomb.draw()
-                bomb.draw_bb()
+                #bomb.draw_bb()
+
+
+    def set_sound_manager(self, sm):
+        self.sound_manager = sm

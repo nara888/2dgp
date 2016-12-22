@@ -16,7 +16,6 @@ class Boss_Bullet:
     def __init__(self, player):
         pass
 
-
     def move(self, frame_time):
         pass
 
@@ -71,8 +70,10 @@ class JetMan_Missile(Boss_Bullet):
 
         if jetman.y < 500:
             self.type = self.HORIZON_MISSILE
+            self.ground_y = 90 + self.HORIZON_Y_SIZE / 2
         else:
             self.type = self.OPPOSITE_MISSILE
+            self.ground_y = 70 + self.OPPOSITE_Y_SIZE / 2
 
         self.dir = jetman.dir
         self.x = jetman.x
@@ -166,6 +167,7 @@ class JetMan_Bomb(Boss_Bullet):
         self.y = jetman.y - 50
         self.action_start_time = get_time()  # 낙하 시작 시간
         self.accel = 1200  # 초기 낙하 가속
+        self.ground_y = 70 + self.BOMB_Y_SIZE / 2
 
     ##
     def move(self, frame_time):
@@ -200,3 +202,52 @@ class JetMan_Bomb(Boss_Bullet):
 
     def draw(self):
         self.image.clip_draw(0, 0, self.BOMB_IMAGE_X_SIZE, self.BOMB_IMAGE_Y_SIZE, self.x, self.y, self.BOMB_X_SIZE, self.BOMB_Y_SIZE)
+
+
+class Big_Explosion_Effect:
+
+    TIME_PER_ACTION = 0.3
+    ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
+    FRAMES_PER_ACTION = 8
+
+    image = None
+
+    # 이미지 사이즈
+    IMAGE_SIZE = 170
+    SIZE = IMAGE_SIZE
+    BB_SIZE = 150
+
+    SPRITE_NUM = 15
+
+    def __init__(self, x, y):
+        if self.image == None:
+            self.image = load_image('resource/effect/big_explosion_effect_2550x170.png')
+        self.x, self.y = x, y
+        self.frame = 0
+        self.total_frames = 0
+
+    def is_end_effect(self):
+        if self.frame >= self.SPRITE_NUM:
+            return True
+        else:
+            return False
+
+    def is_end_damage(self):
+        if self.frame < 5:
+            return True
+        else:
+            return False
+
+    def update(self, frame_time):
+        self.total_frames += self.FRAMES_PER_ACTION * self.ACTION_PER_TIME * frame_time
+        self.frame = int(self.total_frames)
+
+    def draw(self):
+        self.image.clip_draw(self.IMAGE_SIZE * self.frame, 0, self.IMAGE_SIZE, self.IMAGE_SIZE, self.x, self.y, self.SIZE,
+                             self.SIZE)
+
+    def get_bb(self):
+        return self.x - self.BB_SIZE / 2 , self.y - self.BB_SIZE / 2, self.x + self.BB_SIZE / 2, self.y + self.BB_SIZE / 2
+
+    def draw_bb(self):
+        draw_rectangle(*self.get_bb())
